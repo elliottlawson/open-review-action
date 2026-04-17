@@ -57,8 +57,7 @@ runs:
         IGNORE: ${{ inputs.ignore }}
         GITHUB_TOKEN: ${{ github.token }}
         PR_NUMBER: ${{ github.event.pull_request.number }}
-        REPO_OWNER: ${{ github.repository_owner }}
-        REPO_NAME: ${{ github.event.repository.name }}
+        REPO: ${{ github.repository }}
         BASE_REF: ${{ github.event.pull_request.base.ref }}
       run: |
         # Set API key based on provider
@@ -68,22 +67,26 @@ runs:
           openrouter) export OPENROUTER_API_KEY="$API_KEY" ;;
         esac
 
-        # Build args
-        ARGS="--diff origin/$BASE_REF --json"
+        # Build review args
+        REVIEW_ARGS="--diff origin/$BASE_REF --json"
         if [ -n "$CONVENTIONS" ]; then
-          ARGS="$ARGS --instructions $CONVENTIONS"
+          REVIEW_ARGS="$REVIEW_ARGS --instructions $CONVENTIONS"
         fi
 
-        # Run review
-        RESULT=$(open-review review . $ARGS)
+        # Run review and save to temp file
+        RESULT_FILE=$(mktemp)
+        open-review review . $REVIEW_ARGS > "$RESULT_FILE"
 
-        # Parse outputs
-        echo "verdict=$(echo "$RESULT" | jq -r '.verdict')" >> $GITHUB_OUTPUT
-        echo "summary=$(echo "$RESULT" | jq -r '.summary')" >> $GITHUB_OUTPUT
-        echo "findings_count=$(echo "$RESULT" | jq '.findings | length')" >> $GITHUB_OUTPUT
+        # Parse outputs for GitHub Actions
+        echo "verdict=$(jq -r '.verdict' "$RESULT_FILE")" >> $GITHUB_OUTPUT
+        echo "summary=$(jq -r '.summary' "$RESULT_FILE" | head -c 1000)" >> $GITHUB_OUTPUT
+        echo "findings_count=$(jq '.findings | length' "$RESULT_FILE")" >> $GITHUB_OUTPUT
 
         # Post to PR
         open-review post \
-          --repo "$REPO_OWNER/$REPO_NAME" \
+          --repo "$REPO" \
           --pr "$PR_NUMBER" \
-          --result "$RESULT"
+          --result-file "$RESULT_FILE"
+
+        # Cleanup
+        rm -f "$RESULT_FILE"
