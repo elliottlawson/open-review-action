@@ -1,0 +1,89 @@
+name: "Open Review"
+description: "AI-powered code review for pull requests"
+branding:
+  icon: "eye"
+  color: "blue"
+
+inputs:
+  provider:
+    description: "LLM provider (anthropic, openai, openrouter)"
+    required: true
+  model:
+    description: "Model to use (e.g., claude-sonnet-4-20250514)"
+    required: true
+  api_key:
+    description: "API key for the provider"
+    required: true
+  conventions:
+    description: "Path to conventions file (optional, auto-detected by default)"
+    required: false
+    default: ""
+  ignore:
+    description: "Comma-separated glob patterns to ignore"
+    required: false
+    default: ""
+
+outputs:
+  verdict:
+    description: "Review verdict (approve, request_changes, comment)"
+    value: ${{ steps.review.outputs.verdict }}
+  summary:
+    description: "Review summary"
+    value: ${{ steps.review.outputs.summary }}
+  findings_count:
+    description: "Number of findings"
+    value: ${{ steps.review.outputs.findings_count }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+
+    - name: Install Open Review
+      shell: bash
+      run: npm install -g open-review
+
+    - name: Run Review
+      id: review
+      shell: bash
+      env:
+        PROVIDER: ${{ inputs.provider }}
+        MODEL: ${{ inputs.model }}
+        API_KEY: ${{ inputs.api_key }}
+        CONVENTIONS: ${{ inputs.conventions }}
+        IGNORE: ${{ inputs.ignore }}
+        GITHUB_TOKEN: ${{ github.token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        REPO_OWNER: ${{ github.repository_owner }}
+        REPO_NAME: ${{ github.event.repository.name }}
+        BASE_REF: ${{ github.event.pull_request.base.ref }}
+      run: |
+        # Set API key based on provider
+        case "$PROVIDER" in
+          anthropic) export ANTHROPIC_API_KEY="$API_KEY" ;;
+          openai) export OPENAI_API_KEY="$API_KEY" ;;
+          openrouter) export OPENROUTER_API_KEY="$API_KEY" ;;
+        esac
+
+        # Build args
+        ARGS="--diff origin/$BASE_REF --json"
+        if [ -n "$CONVENTIONS" ]; then
+          ARGS="$ARGS --instructions $CONVENTIONS"
+        fi
+
+        # Run review
+        RESULT=$(open-review review . $ARGS)
+
+        # Parse outputs
+        echo "verdict=$(echo "$RESULT" | jq -r '.verdict')" >> $GITHUB_OUTPUT
+        echo "summary=$(echo "$RESULT" | jq -r '.summary')" >> $GITHUB_OUTPUT
+        echo "findings_count=$(echo "$RESULT" | jq '.findings | length')" >> $GITHUB_OUTPUT
+
+        # Post to PR
+        open-review post \
+          --repo "$REPO_OWNER/$REPO_NAME" \
+          --pr "$PR_NUMBER" \
+          --result "$RESULT"
