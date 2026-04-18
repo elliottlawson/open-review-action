@@ -44,7 +44,7 @@ runs:
 
     - name: Install Open Review
       shell: bash
-      run: npm install -g open-review
+      run: npm install -g github:elliottlawson/open-review
 
     - name: Run Review
       id: review
