@@ -147,7 +147,11 @@ function formatForGitHub(result, version = 1) {
 
   // Must Fix - Critical blocking issues
   if (critical.length > 0) {
-    body += '🔴 Must fix\n\n';
+    body += '🔴 Must fix\n';
+    if (result.sectionSummaries?.mustFix) {
+      body += `${result.sectionSummaries.mustFix}\n`;
+    }
+    body += '\n';
     critical.forEach((f, i) => {
       body += `${i + 1}. **${f.title}**`;
       if (f.file) {
@@ -173,7 +177,11 @@ function formatForGitHub(result, version = 1) {
 
   // Should Fix - Non-blocking improvements
   if (warnings.length > 0) {
-    body += '🟡 Should fix\n\n';
+    body += '🟡 Should fix\n';
+    if (result.sectionSummaries?.shouldFix) {
+      body += `${result.sectionSummaries.shouldFix}\n`;
+    }
+    body += '\n';
     warnings.forEach(f => {
       body += `- **${f.title}**`;
       if (f.file) {
@@ -199,7 +207,11 @@ function formatForGitHub(result, version = 1) {
 
   // Questions - Discussion prompts
   if (questions.length > 0) {
-    body += '💬 Questions for the team\n\n';
+    body += '💬 Questions for the team\n';
+    if (result.sectionSummaries?.questions) {
+      body += `${result.sectionSummaries.questions}\n`;
+    }
+    body += '\n';
     questions.forEach(f => {
       body += `- **${f.title}**\n`;
       if (f.description) {
@@ -232,7 +244,12 @@ function formatForGitHub(result, version = 1) {
       suggestionsContent += '\n';
     });
 
-    body += '<details>\n<summary>💡 Suggestions (non-blocking)</summary>\n\n';
+    const suggestionsSummary = result.sectionSummaries?.suggestions;
+    const summaryText = suggestionsSummary
+      ? `💡 Suggestions (non-blocking) — ${suggestionsSummary}`
+      : '💡 Suggestions (non-blocking)';
+
+    body += `<details>\n<summary>${summaryText}</summary>\n\n`;
     body += suggestionsContent;
     body += '</details>\n\n';
   }
