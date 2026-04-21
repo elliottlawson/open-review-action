@@ -53,9 +53,10 @@ async function findExistingReviewComment(octokit, owner, repo, prNumber) {
     });
 
     // Find the most recent comment from github-actions with our marker
+    // Note: GitHub Actions bot can be 'github-actions' or 'github-actions[bot]'
     const openReviewComments = comments
       .filter(c =>
-        c.user?.login === 'github-actions' &&
+        (c.user?.login === 'github-actions' || c.user?.login === 'github-actions[bot]') &&
         c.body?.includes(REVIEW_MARKER)
       )
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
