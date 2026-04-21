@@ -244,12 +244,13 @@ function formatForGitHub(result, version = 1) {
       suggestionsContent += '\n';
     });
 
-    const suggestionsSummary = result.sectionSummaries?.suggestions;
-    const summaryText = suggestionsSummary
-      ? `💡 Suggestions (non-blocking) — ${suggestionsSummary}`
-      : '💡 Suggestions (non-blocking)';
+    body += '<details>\n<summary>💡 Suggestions (non-blocking)</summary>\n\n';
 
-    body += `<details>\n<summary>${summaryText}</summary>\n\n`;
+    // Add section summary below the summary tag if present
+    if (result.sectionSummaries?.suggestions) {
+      body += `${result.sectionSummaries.suggestions}\n\n`;
+    }
+
     body += suggestionsContent;
     body += '</details>\n\n';
   }
