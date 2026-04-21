@@ -31,22 +31,22 @@ function formatForGitHub(result) {
     comment: { icon: '⏸️', text: '**Hold** — let\'s discuss the approach' }
   };
 
-  const v = verdicts[result.recommendation] || verdicts.comment;
+  const v = verdicts[result.verdict] || verdicts.comment;
   let body = `${v.icon} ${v.text}\n\n`;
 
   // Summary (required when not approved)
-  if (result.recommendation !== 'approve' && result.summary) {
+  if (result.verdict !== 'approve' && result.summary) {
     body += `${result.summary}\n\n`;
   }
 
-  // Group findings
+  // Group findings by type/severity
   const findings = result.findings || [];
   const critical = findings.filter(f => f.severity === 'critical');
   const warnings = findings.filter(f => f.severity === 'warning');
   const questions = findings.filter(f => f.type === 'question');
-  const suggestions = findings.filter(f => f.severity === 'info' && f.type === 'suggestion');
+  const suggestions = findings.filter(f => f.type === 'suggestion' || (f.severity === 'info' && f.type !== 'question'));
 
-  // Must Fix
+  // Must Fix - Critical blocking issues
   if (critical.length > 0) {
     body += '🔴 Must fix\n\n';
     critical.forEach((f, i) => {
@@ -55,11 +55,24 @@ function formatForGitHub(result) {
         body += ` — \`${f.file}${f.line ? ':' + f.line : ''}\``;
       }
       body += '\n';
+
+      // Add description if present
+      if (f.description) {
+        body += `   ${f.description}\n`;
+      }
+
+      // Add suggested fix if present
+      if (f.suggestedFix) {
+        body += '\n   **Suggested fix:**\n';
+        body += '   ```suggestion\n';
+        body += `   ${f.suggestedFix.split('\n').join('\n   ')}\n`;
+        body += '   ```\n';
+      }
+      body += '\n';
     });
-    body += '\n';
   }
 
-  // Should Fix
+  // Should Fix - Non-blocking improvements
   if (warnings.length > 0) {
     body += '🟡 Should fix\n\n';
     warnings.forEach(f => {
@@ -68,29 +81,60 @@ function formatForGitHub(result) {
         body += ` — \`${f.file}${f.line ? ':' + f.line : ''}\``;
       }
       body += '\n';
+
+      // Add description if present
+      if (f.description) {
+        body += `  ${f.description}\n`;
+      }
+
+      // Add suggested fix if present
+      if (f.suggestedFix) {
+        body += '\n  **Suggested fix:**\n';
+        body += '  ```suggestion\n';
+        body += `  ${f.suggestedFix.split('\n').join('\n  ')}\n`;
+        body += '  ```\n';
+      }
+      body += '\n';
     });
-    body += '\n';
   }
 
-  // Questions
+  // Questions - Discussion prompts
   if (questions.length > 0) {
     body += '💬 Questions for the team\n\n';
     questions.forEach(f => {
       body += `- **${f.title}**\n`;
-    });
-    body += '\n';
-  }
-
-  // Suggestions (collapsed by default)
-  if (suggestions.length > 0) {
-    body += '<details>\n<summary>💡 Suggestions (non-blocking)</summary>\n\n';
-    suggestions.forEach(f => {
-      body += `- ${f.title}`;
-      if (f.file) {
-        body += ` — \`${f.file}${f.line ? ':' + f.line : ''}\``;
+      if (f.description) {
+        body += `  ${f.description}\n`;
       }
       body += '\n';
     });
+  }
+
+  // Suggestions - Nice-to-have (collapsed by default)
+  if (suggestions.length > 0) {
+    let suggestionsContent = '';
+    suggestions.forEach(f => {
+      suggestionsContent += `- **${f.title}**`;
+      if (f.file) {
+        suggestionsContent += ` — \`${f.file}${f.line ? ':' + f.line : ''}\``;
+      }
+      suggestionsContent += '\n';
+
+      if (f.description) {
+        suggestionsContent += `  ${f.description}\n`;
+      }
+
+      if (f.suggestedFix) {
+        suggestionsContent += '\n  **Suggested fix:**\n';
+        suggestionsContent += '  ```suggestion\n';
+        suggestionsContent += `  ${f.suggestedFix.split('\n').join('\n  ')}\n`;
+        suggestionsContent += '  ```\n';
+      }
+      suggestionsContent += '\n';
+    });
+
+    body += '<details>\n<summary>💡 Suggestions (non-blocking)</summary>\n\n';
+    body += suggestionsContent;
     body += '</details>\n\n';
   }
 
