@@ -1,0 +1,9 @@
+{
+  "name": "open-review-action",
+  "version": "1.0.0",
+  "description": "GitHub Action for Open Review",
+  "main": "format-and-post.js",
+  "dependencies": {
+    "@octokit/rest": "^20.0.2"
+  }
+}

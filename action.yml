@@ -40,58 +40,55 @@ runs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: "20"
+        node-version: "22"
 
     - name: Install Open Review
       shell: bash
       run: |
         git clone --depth 1 https://github.com/elliottlawson/open-review.git /tmp/open-review
         cd /tmp/open-review
-        npm install
+        npm install --legacy-peer-deps
         npm run build
         npm link
+
+    - name: Install Action Dependencies
+      shell: bash
+      run: |
+        cd ${{ github.action_path }}
+        npm install
 
     - name: Run Review
       id: review
       shell: bash
       env:
-        PROVIDER: ${{ inputs.provider }}
-        MODEL: ${{ inputs.model }}
-        API_KEY: ${{ inputs.api_key }}
-        CONVENTIONS: ${{ inputs.conventions }}
-        IGNORE: ${{ inputs.ignore }}
-        GITHUB_TOKEN: ${{ github.token }}
-        PR_NUMBER: ${{ github.event.pull_request.number }}
-        REPO: ${{ github.repository }}
-        BASE_REF: ${{ github.event.pull_request.base.ref }}
+        ANTHROPIC_API_KEY: ${{ inputs.provider == 'anthropic' && inputs.api_key || '' }}
+        OPENAI_API_KEY: ${{ inputs.provider == 'openai' && inputs.api_key || '' }}
+        OPENROUTER_API_KEY: ${{ inputs.provider == 'openrouter' && inputs.api_key || '' }}
       run: |
-        # Set API key based on provider
-        case "$PROVIDER" in
-          anthropic) export ANTHROPIC_API_KEY="$API_KEY" ;;
-          openai) export OPENAI_API_KEY="$API_KEY" ;;
-          openrouter) export OPENROUTER_API_KEY="$API_KEY" ;;
-        esac
-
         # Build review args
-        REVIEW_ARGS="--diff origin/$BASE_REF --json"
-        if [ -n "$CONVENTIONS" ]; then
-          REVIEW_ARGS="$REVIEW_ARGS --instructions $CONVENTIONS"
+        REVIEW_ARGS="--diff origin/${{ github.event.pull_request.base.ref }} --json"
+        if [ -n "${{ inputs.conventions }}" ]; then
+          REVIEW_ARGS="$REVIEW_ARGS --instructions ${{ inputs.conventions }}"
         fi
 
         # Run review and save to temp file
         RESULT_FILE=$(mktemp)
         open-review review . $REVIEW_ARGS > "$RESULT_FILE"
+        echo "result_file=$RESULT_FILE" >> $GITHUB_OUTPUT
 
-        # Parse outputs for GitHub Actions
-        echo "verdict=$(jq -r '.verdict' "$RESULT_FILE")" >> $GITHUB_OUTPUT
+        # Parse outputs
+        echo "verdict=$(jq -r '.recommendation' "$RESULT_FILE")" >> $GITHUB_OUTPUT
         echo "summary=$(jq -r '.summary' "$RESULT_FILE" | head -c 1000)" >> $GITHUB_OUTPUT
         echo "findings_count=$(jq '.findings | length' "$RESULT_FILE")" >> $GITHUB_OUTPUT
 
-        # Post to PR
-        open-review post \
-          --repo "$REPO" \
-          --pr "$PR_NUMBER" \
-          --result-file "$RESULT_FILE"
-
-        # Cleanup
+    - name: Post Review
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        REPO: ${{ github.repository }}
+        RESULT_FILE: ${{ steps.review.outputs.result_file }}
+      run: |
+        cd ${{ github.action_path }}
+        node format-and-post.js
         rm -f "$RESULT_FILE"
