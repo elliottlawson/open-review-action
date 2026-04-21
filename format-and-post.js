@@ -42,7 +42,8 @@ function formatTimestamp(date = new Date()) {
  * Extract version from existing comment body
  */
 function extractVersion(body) {
-  const versionMatch = body.match(/<!-- open-review:version:(\d+) -->/);
+  // Match version in metadata block (multi-line format)
+  const versionMatch = body.match(/<!-- open-review:meta\nversion:\s*(\d+)/);
   return versionMatch ? parseInt(versionMatch[1], 10) : 0;
 }
 
