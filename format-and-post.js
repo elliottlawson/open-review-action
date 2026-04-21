@@ -223,6 +223,15 @@ function formatForGitHub(result, version = 1) {
 
   // Suggestions - Nice-to-have (collapsed by default)
   if (suggestions.length > 0) {
+    body += '💡 Suggestions (non-blocking)\n';
+
+    // Section summary is ALWAYS outside the collapsible block
+    if (result.sectionSummaries?.suggestions) {
+      body += `${result.sectionSummaries.suggestions}\n`;
+    }
+    body += '\n';
+
+    // Build collapsible content (just the items, no description inside)
     let suggestionsContent = '';
     suggestions.forEach(f => {
       suggestionsContent += `- **${f.title}**`;
@@ -244,13 +253,7 @@ function formatForGitHub(result, version = 1) {
       suggestionsContent += '\n';
     });
 
-    body += '<details>\n<summary>💡 Suggestions (non-blocking)</summary>\n\n';
-
-    // Add section summary below the summary tag if present
-    if (result.sectionSummaries?.suggestions) {
-      body += `${result.sectionSummaries.suggestions}\n\n`;
-    }
-
+    body += '<details>\n<summary>View suggestions</summary>\n\n';
     body += suggestionsContent;
     body += '</details>\n\n';
   }
