@@ -22,6 +22,10 @@ inputs:
     description: "Comma-separated glob patterns to ignore"
     required: false
     default: ""
+  timezone:
+    description: "Timezone for timestamps (e.g., America/New_York, Europe/London, UTC). Defaults to UTC."
+    required: false
+    default: "UTC"
 
 outputs:
   verdict:
@@ -88,6 +92,7 @@ runs:
         PR_NUMBER: ${{ github.event.pull_request.number }}
         REPO: ${{ github.repository }}
         RESULT_FILE: ${{ steps.review.outputs.result_file }}
+        TIMEZONE: ${{ inputs.timezone }}
       run: |
         cd ${{ github.action_path }}
         node format-and-post.js
