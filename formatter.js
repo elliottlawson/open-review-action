@@ -75,7 +75,7 @@ function formatForGitHub(result, version = 1) {
   let body = `<img src="${v.badge}" height="32" alt="">\n\n<br>\n\n`;
 
   if (result.verdict !== 'approve' && result.summary) {
-    body += `${result.summary}\n\n<br>\n\n`;
+    body += `${result.summary}\n\n`;
   }
 
   const findings = result.findings || [];
