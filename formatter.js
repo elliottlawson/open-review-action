@@ -9,6 +9,10 @@ const ICON_DIFF_REMOVED = 'https://raw.githubusercontent.com/primer/octicons/mai
 const ICON_COMMENT_DISCUSSION = 'https://raw.githubusercontent.com/primer/octicons/main/icons/comment-discussion-16.svg';
 const ICON_LIGHT_BULB = 'https://raw.githubusercontent.com/primer/octicons/main/icons/light-bulb-16.svg';
 
+const ICON_CHECK_CIRCLE = 'https://raw.githubusercontent.com/primer/octicons/main/icons/check-circle-16.svg';
+const ICON_ALERT = 'https://raw.githubusercontent.com/primer/octicons/main/icons/alert-16.svg';
+const ICON_PAUSE = 'https://raw.githubusercontent.com/primer/octicons/main/icons/pause-16.svg';
+
 function formatTimestamp(date = new Date()) {
   try {
     return date.toLocaleString('en-US', {
@@ -62,13 +66,13 @@ function formatSection({ icon, title, summary, content, isCollapsible = false })
 
 function formatForGitHub(result, version = 1) {
   const verdicts = {
-    approve:         { icon: '✅',  text: '**LGTM** — approve and merge' },
-    request_changes: { icon: '⚠️',  text: '**Changes requested** — do not merge' },
-    comment:         { icon: '⏸️', text: '**Hold** — let\'s discuss the approach' }
+    approve:         { icon: ICON_CHECK_CIRCLE, text: '**LGTM** — approve and merge' },
+    request_changes: { icon: ICON_ALERT,       text: '**Changes requested** — do not merge' },
+    comment:         { icon: ICON_PAUSE,       text: '**Hold** — let\'s discuss the approach' }
   };
 
   const v = verdicts[result.verdict] || verdicts.comment;
-  let body = `${v.icon} ${v.text}\n\n`;
+  let body = `# <img src="${v.icon}" height="28" alt="">&nbsp;&nbsp;${v.text}\n\n`;
 
   if (result.verdict !== 'approve' && result.summary) {
     body += `${result.summary}\n\n`;
