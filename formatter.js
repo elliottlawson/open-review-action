@@ -66,13 +66,13 @@ function formatSection({ icon, title, summary, content, isCollapsible = false })
 
 function formatForGitHub(result, version = 1) {
   const verdicts = {
-    approve:         { badge: 'https://forthebadge.com/api/badges/generate?panels=2&primaryLabel=LGTM&secondaryLabel=approve%20and%20merge&primaryBGColor=%232ea44f&secondaryBGColor=%23ffffff&primaryTextColor=%23ffffff&secondaryTextColor=%232ea44f&primaryFontSize=14&primaryFontWeight=700&primaryLetterSpacing=1&primaryTextTransform=uppercase&secondaryFontSize=14&secondaryFontWeight=400&secondaryLetterSpacing=0&secondaryTextTransform=none', icon: ICON_CHECK_CIRCLE },
-    request_changes: { badge: 'https://forthebadge.com/api/badges/generate?panels=2&primaryLabel=CHANGES%20REQUESTED&secondaryLabel=do%20not%20merge&primaryBGColor=%23d73a49&secondaryBGColor=%23ffffff&primaryTextColor=%23ffffff&secondaryTextColor=%23d73a49&primaryFontSize=14&primaryFontWeight=700&primaryLetterSpacing=1&primaryTextTransform=uppercase&secondaryFontSize=14&secondaryFontWeight=400&secondaryLetterSpacing=0&secondaryTextTransform=none', icon: ICON_ALERT },
-    comment:         { badge: 'https://forthebadge.com/api/badges/generate?panels=2&primaryLabel=HOLD&secondaryLabel=let%27s%20discuss%20the%20approach&primaryBGColor=%23d4a017&secondaryBGColor=%23ffffff&primaryTextColor=%23ffffff&secondaryTextColor=%23d4a017&primaryFontSize=14&primaryFontWeight=700&primaryLetterSpacing=1&primaryTextTransform=uppercase&secondaryFontSize=14&secondaryFontWeight=400&secondaryLetterSpacing=0&secondaryTextTransform=none', icon: ICON_PAUSE }
+    approve:         { badge: 'https://forthebadge.com/api/badges/generate?panels=2&primaryLabel=LGTM&secondaryLabel=approve%20and%20merge&primaryBGColor=%232ea44f&secondaryBGColor=%23ffffff&primaryTextColor=%23ffffff&secondaryTextColor=%232ea44f&primaryFontSize=14&primaryFontWeight=700&primaryLetterSpacing=1&primaryTextTransform=uppercase&secondaryFontSize=14&secondaryFontWeight=400&secondaryLetterSpacing=0&secondaryTextTransform=none' },
+    request_changes: { badge: 'https://forthebadge.com/api/badges/generate?panels=2&primaryLabel=CHANGES%20REQUESTED&secondaryLabel=do%20not%20merge&primaryBGColor=%23d73a49&secondaryBGColor=%23ffffff&primaryTextColor=%23ffffff&secondaryTextColor=%23d73a49&primaryFontSize=14&primaryFontWeight=700&primaryLetterSpacing=1&primaryTextTransform=uppercase&secondaryFontSize=14&secondaryFontWeight=400&secondaryLetterSpacing=0&secondaryTextTransform=none' },
+    comment:         { badge: 'https://forthebadge.com/api/badges/generate?panels=2&primaryLabel=HOLD&secondaryLabel=let%27s%20discuss%20the%20approach&primaryBGColor=%23d4a017&secondaryBGColor=%23ffffff&primaryTextColor=%23ffffff&secondaryTextColor=%23d4a017&primaryFontSize=14&primaryFontWeight=700&primaryLetterSpacing=1&primaryTextTransform=uppercase&secondaryFontSize=14&secondaryFontWeight=400&secondaryLetterSpacing=0&secondaryTextTransform=none' }
   };
 
   const v = verdicts[result.verdict] || verdicts.comment;
-  let body = `<img src="${v.icon}" height="20" alt="">&nbsp;&nbsp;<img src="${v.badge}" height="32" alt="">\n\n<br>\n\n`;
+  let body = `<img src="${v.badge}" height="32" alt="">\n\n<br>\n\n`;
 
   if (result.verdict !== 'approve' && result.summary) {
     body += `${result.summary}\n\n<br>\n\n`;
