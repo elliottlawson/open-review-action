@@ -39,11 +39,12 @@ No callouts, no blockquotes, no alert syntax.
 
 ### 3. Summary Table
 
-A bolded heading `**Review Overview**` followed by a full-width HTML table (`<table width="100%">`) displaying the count of findings per section.
+A bolded heading `**Review Overview**` followed by a compact row of shields.io flat-square badges.
 
-- **Headers**: shields.io flat-square badges with the section title.
-- **Values**: bold, centered text.
-- **Dynamic columns**: Only sections with `count > 0` are included.
+- **Badges**: Each badge shows the section label on the left (dark gray) and the count on the right (section color).
+- **Style**: `flat-square`, `height="24"`.
+- **Dynamic**: Only sections with `count > 0` are included.
+- **Spacing**: Badges are separated by a single space.
 
 | Section | Badge Color |
 |---|---|

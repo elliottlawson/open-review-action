@@ -96,15 +96,11 @@ function formatSummaryTable(counts) {
 
   if (sections.length === 0) return '';
 
-  const headers = sections.map(s =>
-    `<th align="center"><img src="https://img.shields.io/badge/${s.label}-${s.color}?style=flat-square" alt="${s.key}"></th>`
-  ).join('');
+  const badges = sections.map(s =>
+    `<img src="https://img.shields.io/badge/${s.label}-${s.count}-${s.color}?style=flat-square" height="24" alt="${s.key}">`
+  ).join(' ');
 
-  const values = sections.map(s =>
-    `<td align="center"><strong>${s.count}</strong></td>`
-  ).join('');
-
-  return `**Review Overview**\n\n<table width="100%">\n  <thead>\n    <tr>${headers}</tr>\n  </thead>\n  <tbody>\n    <tr>${values}</tr>\n  </tbody>\n</table>\n`;
+  return `**Review Overview**\n\n${badges}\n\n`;
 }
 
 function formatSection({ icon, title, count, countColor, summary, content, isCollapsible = false }) {
