@@ -9,10 +9,6 @@ const ICON_DIFF_REMOVED = 'https://raw.githubusercontent.com/primer/octicons/mai
 const ICON_COMMENT_DISCUSSION = 'https://raw.githubusercontent.com/primer/octicons/main/icons/comment-discussion-16.svg';
 const ICON_LIGHT_BULB = 'https://raw.githubusercontent.com/primer/octicons/main/icons/light-bulb-16.svg';
 
-const ICON_CHECK_CIRCLE = 'https://raw.githubusercontent.com/primer/octicons/main/icons/check-circle-16.svg';
-const ICON_ALERT = 'https://raw.githubusercontent.com/primer/octicons/main/icons/alert-16.svg';
-const ICON_PAUSE = 'https://raw.githubusercontent.com/primer/octicons/main/icons/pause-16.svg';
-
 function formatTimestamp(date = new Date()) {
   try {
     return date.toLocaleString('en-US', {
@@ -42,8 +38,78 @@ function formatMetadata(version) {
   return `${METADATA_START}\nversion: ${version}\ngenerated: ${new Date().toISOString()}\n${METADATA_END}`;
 }
 
-function formatSection({ icon, title, summary, content, isCollapsible = false }) {
-  let section = `\n## <img src="${icon}" height="18" alt="">&nbsp;&nbsp;${title}\n\n`;
+function formatFileLink(file, line, baseUrl) {
+  const display = line ? `${file}:${line}` : file;
+  if (!baseUrl) return `\`${display}\``;
+  const url = `${baseUrl}${file}${line ? '#L' + line : ''}`;
+  return `[\`${display}\`](${url})`;
+}
+
+function detectCodeLanguage(file, fix) {
+  if (!fix) return '';
+  const lines = fix.split('\n');
+  const hasDiffMarkers = lines.some(l => l.startsWith('+ ') || l.startsWith('- ') || l.startsWith('@@'));
+  if (hasDiffMarkers) return 'diff';
+
+  const ext = file?.split('.').pop()?.toLowerCase() || '';
+  const map = {
+    php: 'php',
+    js: 'javascript',
+    jsx: 'jsx',
+    ts: 'typescript',
+    tsx: 'tsx',
+    py: 'python',
+    rb: 'ruby',
+    go: 'go',
+    rs: 'rust',
+    java: 'java',
+    kt: 'kotlin',
+    swift: 'swift',
+    c: 'c',
+    cpp: 'cpp',
+    h: 'c',
+    cs: 'csharp',
+    json: 'json',
+    yml: 'yaml',
+    yaml: 'yaml',
+    xml: 'xml',
+    html: 'html',
+    css: 'css',
+    scss: 'scss',
+    sql: 'sql',
+    sh: 'bash',
+    bash: 'bash',
+    zsh: 'bash',
+    md: 'markdown',
+    dockerfile: 'dockerfile',
+  };
+  return map[ext] || '';
+}
+
+function formatSummaryTable(counts) {
+  const sections = [
+    { key: 'mustFix', label: 'Must%20fix', color: 'd73a49', count: counts.mustFix },
+    { key: 'shouldFix', label: 'Should%20fix', color: 'd4a017', count: counts.shouldFix },
+    { key: 'questions', label: 'Questions', color: '0969da', count: counts.questions },
+    { key: 'suggestions', label: 'Suggestions', color: '57606a', count: counts.suggestions },
+  ].filter(s => s.count > 0);
+
+  if (sections.length === 0) return '';
+
+  const headers = sections.map(s =>
+    `<th align="center"><img src="https://img.shields.io/badge/${s.label}-${s.color}?style=flat-square" alt="${s.key}"></th>`
+  ).join('');
+
+  const values = sections.map(s =>
+    `<td align="center"><strong>${s.count}</strong></td>`
+  ).join('');
+
+  return `<table width="100%">\n  <thead>\n    <tr>${headers}</tr>\n  </thead>\n  <tbody>\n    <tr>${values}</tr>\n  </tbody>\n</table>\n`;
+}
+
+function formatSection({ icon, title, count, countColor, summary, content, isCollapsible = false }) {
+  const countBadge = `https://img.shields.io/badge/-${count}-${countColor}?style=flat-square`;
+  let section = `\n## <img src="${icon}" height="16" alt=""> ${title} <img align="right" src="${countBadge}" height="20">\n\n`;
 
   if (summary) {
     section += `${summary}\n\n`;
@@ -59,12 +125,10 @@ function formatSection({ icon, title, summary, content, isCollapsible = false })
     section += '\n</details>\n';
   }
 
-  section += '---\n';
-
   return section;
 }
 
-function formatForGitHub(result, version = 1) {
+function formatForGitHub(result, version = 1, baseUrl = '') {
   const verdicts = {
     approve:         { badge: 'https://forthebadge.com/api/badges/generate?panels=2&primaryLabel=LGTM&secondaryLabel=approve%20and%20merge&primaryBGColor=%232ea44f&secondaryBGColor=%23ffffff&primaryTextColor=%23ffffff&secondaryTextColor=%232ea44f&primaryFontSize=14&primaryFontWeight=700&primaryLetterSpacing=1&primaryTextTransform=uppercase&secondaryFontSize=14&secondaryFontWeight=400&secondaryLetterSpacing=0&secondaryTextTransform=none' },
     request_changes: { badge: 'https://forthebadge.com/api/badges/generate?panels=2&primaryLabel=CHANGES%20REQUESTED&secondaryLabel=do%20not%20merge&primaryBGColor=%23d73a49&secondaryBGColor=%23ffffff&primaryTextColor=%23ffffff&secondaryTextColor=%23d73a49&primaryFontSize=14&primaryFontWeight=700&primaryLetterSpacing=1&primaryTextTransform=uppercase&secondaryFontSize=14&secondaryFontWeight=400&secondaryLetterSpacing=0&secondaryTextTransform=none' },
@@ -84,16 +148,29 @@ function formatForGitHub(result, version = 1) {
   const questions   = findings.filter(f => f.type === 'question');
   const suggestions = findings.filter(f => f.type === 'suggestion' || (f.severity === 'info' && f.type !== 'question'));
 
+  const counts = {
+    mustFix: critical.length,
+    shouldFix: warnings.length,
+    questions: questions.length,
+    suggestions: suggestions.length,
+  };
+
+  const table = formatSummaryTable(counts);
+  if (table) {
+    body += table;
+  }
+
   if (critical.length > 0) {
     let content = '';
     critical.forEach((f, i) => {
       content += `${i + 1}. **${f.title}**`;
-      if (f.file) content += ` — \`${f.file}${f.line ? ':' + f.line : ''}\``;
+      if (f.file) content += ` — ${formatFileLink(f.file, f.line, baseUrl)}`;
       content += '\n';
       if (f.description) content += `   ${f.description}\n`;
       if (f.suggestedFix) {
         content += '\n   **Suggested fix:**\n';
-        content += '   ```suggestion\n';
+        const lang = detectCodeLanguage(f.file, f.suggestedFix);
+        content += `   \`\`\`${lang}\n`;
         content += `   ${f.suggestedFix.split('\n').join('\n   ')}\n`;
         content += '   ```\n';
       }
@@ -102,6 +179,8 @@ function formatForGitHub(result, version = 1) {
     body += formatSection({
       icon: ICON_STOP,
       title: 'Must fix',
+      count: critical.length,
+      countColor: 'd73a49',
       summary: result.sectionSummaries?.mustFix,
       content
     });
@@ -111,12 +190,13 @@ function formatForGitHub(result, version = 1) {
     let content = '';
     warnings.forEach(f => {
       content += `- **${f.title}**`;
-      if (f.file) content += ` — \`${f.file}${f.line ? ':' + f.line : ''}\``;
+      if (f.file) content += ` — ${formatFileLink(f.file, f.line, baseUrl)}`;
       content += '\n';
       if (f.description) content += `  ${f.description}\n`;
       if (f.suggestedFix) {
         content += '\n  **Suggested fix:**\n';
-        content += '  ```suggestion\n';
+        const lang = detectCodeLanguage(f.file, f.suggestedFix);
+        content += `  \`\`\`${lang}\n`;
         content += `  ${f.suggestedFix.split('\n').join('\n  ')}\n`;
         content += '  ```\n';
       }
@@ -125,6 +205,8 @@ function formatForGitHub(result, version = 1) {
     body += formatSection({
       icon: ICON_DIFF_REMOVED,
       title: 'Should fix',
+      count: warnings.length,
+      countColor: 'd4a017',
       summary: result.sectionSummaries?.shouldFix,
       content
     });
@@ -140,6 +222,8 @@ function formatForGitHub(result, version = 1) {
     body += formatSection({
       icon: ICON_COMMENT_DISCUSSION,
       title: 'Questions',
+      count: questions.length,
+      countColor: '0969da',
       summary: result.sectionSummaries?.questions,
       content
     });
@@ -149,12 +233,13 @@ function formatForGitHub(result, version = 1) {
     let content = '';
     suggestions.forEach(f => {
       content += `- **${f.title}**`;
-      if (f.file) content += ` — \`${f.file}${f.line ? ':' + f.line : ''}\``;
+      if (f.file) content += ` — ${formatFileLink(f.file, f.line, baseUrl)}`;
       content += '\n';
       if (f.description) content += `  ${f.description}\n`;
       if (f.suggestedFix) {
         content += '\n  **Suggested fix:**\n';
-        content += '  ```suggestion\n';
+        const lang = detectCodeLanguage(f.file, f.suggestedFix);
+        content += `  \`\`\`${lang}\n`;
         content += `  ${f.suggestedFix.split('\n').join('\n  ')}\n`;
         content += '  ```\n';
       }
@@ -163,6 +248,8 @@ function formatForGitHub(result, version = 1) {
     body += formatSection({
       icon: ICON_LIGHT_BULB,
       title: 'Suggestions',
+      count: suggestions.length,
+      countColor: '57606a',
       summary: result.sectionSummaries?.suggestions,
       content,
       isCollapsible: true
@@ -171,12 +258,8 @@ function formatForGitHub(result, version = 1) {
 
   const timestamp = formatTimestamp();
   const metadata = formatMetadata(version);
-  if (body.endsWith('---\n')) {
-    body += '\n';
-  } else {
-    body += '---\n\n';
-  }
-  body += `*Generated by Open Review* · **v${version}** · ${timestamp}\n\n${metadata}`;
+  body = body.trimEnd();
+  body += `\n\n---\n\n*Generated by Open Review* · **v${version}** · ${timestamp}\n\n${metadata}`;
 
   return body;
 }

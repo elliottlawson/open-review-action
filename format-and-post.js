@@ -28,8 +28,17 @@ async function main() {
   const currentVersion = existingComment ? extractVersion(existingComment.body) : 0;
   const newVersion = currentVersion + 1;
 
+  // Fetch PR metadata for file links
+  let baseUrl = '';
+  try {
+    const { data: pr } = await octokit.pulls.get({ owner, repo, pull_number: prNumber });
+    baseUrl = `https://github.com/${owner}/${repo}/blob/${pr.head.sha}/`;
+  } catch (error) {
+    console.warn('Could not fetch PR metadata for file links:', error.message);
+  }
+
   // Format for GitHub
-  const comment = formatForGitHub(result, newVersion);
+  const comment = formatForGitHub(result, newVersion, baseUrl);
 
   if (existingComment) {
     // Update existing comment
