@@ -72,7 +72,7 @@ function formatForGitHub(result, version = 1) {
   };
 
   const v = verdicts[result.verdict] || verdicts.comment;
-  let body = `# <img src="${v.icon}" height="28" alt="">&nbsp;&nbsp;${v.text}\n\n`;
+  let body = `<img src="${v.icon}" height="20" alt="">&nbsp;&nbsp;${v.text}\n\n`;
 
   if (result.verdict !== 'approve' && result.summary) {
     body += `${result.summary}\n\n`;
