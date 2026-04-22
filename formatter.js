@@ -39,7 +39,7 @@ function formatMetadata(version) {
 }
 
 function formatSection({ icon, title, summary, content, isCollapsible = false }) {
-  let section = `\n## <img src="${icon}" height="24" alt="">&nbsp;&nbsp;${title}\n\n`;
+  let section = `\n## <img src="${icon}" height="20" alt="">&nbsp;&nbsp;${title}\n\n`;
 
   if (summary) {
     section += `${summary}\n\n`;
