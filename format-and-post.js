@@ -3,8 +3,6 @@ const { Octokit } = require('@octokit/rest');
 
 const { formatForGitHub, REVIEW_MARKER } = require('./formatter');
 
-const TIMEZONE = process.env.TIMEZONE || 'UTC';
-
 /**
  * Extract version from existing comment body
  */
@@ -31,7 +29,7 @@ async function main() {
   const newVersion = currentVersion + 1;
 
   // Format for GitHub
-  const comment = formatForGitHub(result, newVersion, TIMEZONE);
+  const comment = formatForGitHub(result, newVersion);
 
   if (existingComment) {
     // Update existing comment
