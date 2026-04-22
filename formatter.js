@@ -104,7 +104,7 @@ function formatSummaryTable(counts) {
     `<td align="center"><strong>${s.count}</strong></td>`
   ).join('');
 
-  return `<table width="100%">\n  <thead>\n    <tr>${headers}</tr>\n  </thead>\n  <tbody>\n    <tr>${values}</tr>\n  </tbody>\n</table>\n`;
+  return `**Review Overview**\n\n<table width="100%">\n  <thead>\n    <tr>${headers}</tr>\n  </thead>\n  <tbody>\n    <tr>${values}</tr>\n  </tbody>\n</table>\n`;
 }
 
 function formatSection({ icon, title, count, countColor, summary, content, isCollapsible = false }) {

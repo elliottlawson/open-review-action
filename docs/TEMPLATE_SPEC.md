@@ -39,7 +39,7 @@ No callouts, no blockquotes, no alert syntax.
 
 ### 3. Summary Table
 
-A full-width HTML table (`<table width="100%">`) displaying the count of findings per section.
+A bolded heading `**Review Overview**` followed by a full-width HTML table (`<table width="100%">`) displaying the count of findings per section.
 
 - **Headers**: shields.io flat-square badges with the section title.
 - **Values**: bold, centered text.
