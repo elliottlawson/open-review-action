@@ -66,13 +66,13 @@ function formatSection({ icon, title, summary, content, isCollapsible = false })
 
 function formatForGitHub(result, version = 1) {
   const verdicts = {
-    approve:         { icon: ICON_CHECK_CIRCLE, text: '**LGTM** — approve and merge' },
-    request_changes: { icon: ICON_ALERT,       text: '**Changes requested** — do not merge' },
-    comment:         { icon: ICON_PAUSE,       text: '**Hold** — let\'s discuss the approach' }
+    approve:         { badge: 'https://img.shields.io/badge/LGTM-2ea44f?style=for-the-badge',       text: 'approve and merge' },
+    request_changes: { badge: 'https://img.shields.io/badge/Changes%20Requested-d73a49?style=for-the-badge', text: 'do not merge' },
+    comment:         { badge: 'https://img.shields.io/badge/Hold-ffc107?style=for-the-badge',       text: 'let\'s discuss the approach' }
   };
 
   const v = verdicts[result.verdict] || verdicts.comment;
-  let body = `<img src="${v.icon}" height="20" alt="">&nbsp;&nbsp;${v.text}\n\n`;
+  let body = `<img src="${v.badge}" height="28" alt=""> — ${v.text}\n\n`;
 
   if (result.verdict !== 'approve' && result.summary) {
     body += `${result.summary}\n\n`;
