@@ -66,13 +66,13 @@ function formatSection({ icon, title, summary, content, isCollapsible = false })
 
 function formatForGitHub(result, version = 1) {
   const verdicts = {
-    approve:         { badge: 'https://img.shields.io/badge/LGTM-2ea44f?style=for-the-badge',       text: 'approve and merge' },
-    request_changes: { badge: 'https://img.shields.io/badge/Changes%20Requested-d73a49?style=for-the-badge', text: 'do not merge' },
-    comment:         { badge: 'https://img.shields.io/badge/Hold-ffc107?style=for-the-badge',       text: 'let\'s discuss the approach' }
+    approve:         { badge: 'https://forthebadge.com/api/badges/generate?panels=2&primaryLabel=LGTM&secondaryLabel=approve%20and%20merge&primaryBGColor=%232ea44f&secondaryBGColor=%23ffffff&primaryTextColor=%23ffffff&secondaryTextColor=%232ea44f&primaryFontSize=11&primaryFontWeight=700&primaryLetterSpacing=1&primaryTextTransform=uppercase&secondaryFontSize=11&secondaryFontWeight=400&secondaryLetterSpacing=0&secondaryTextTransform=none' },
+    request_changes: { badge: 'https://forthebadge.com/api/badges/generate?panels=2&primaryLabel=CHANGES%20REQUESTED&secondaryLabel=do%20not%20merge&primaryBGColor=%23d73a49&secondaryBGColor=%23ffffff&primaryTextColor=%23ffffff&secondaryTextColor=%23d73a49&primaryFontSize=11&primaryFontWeight=700&primaryLetterSpacing=1&primaryTextTransform=uppercase&secondaryFontSize=11&secondaryFontWeight=400&secondaryLetterSpacing=0&secondaryTextTransform=none' },
+    comment:         { badge: 'https://forthebadge.com/api/badges/generate?panels=2&primaryLabel=HOLD&secondaryLabel=let%27s%20discuss%20the%20approach&primaryBGColor=%23d4a017&secondaryBGColor=%23ffffff&primaryTextColor=%23ffffff&secondaryTextColor=%23d4a017&primaryFontSize=11&primaryFontWeight=700&primaryLetterSpacing=1&primaryTextTransform=uppercase&secondaryFontSize=11&secondaryFontWeight=400&secondaryLetterSpacing=0&secondaryTextTransform=none' }
   };
 
   const v = verdicts[result.verdict] || verdicts.comment;
-  let body = `<img src="${v.badge}" height="28" alt=""> — ${v.text}\n\n`;
+  let body = `<img src="${v.badge}" height="28" alt="">\n\n`;
 
   if (result.verdict !== 'approve' && result.summary) {
     body += `${result.summary}\n\n`;
