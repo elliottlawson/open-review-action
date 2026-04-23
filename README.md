@@ -39,12 +39,17 @@ jobs:
 | `api_key` | Yes | API key for the provider |
 | `conventions` | No | Path to conventions/instructions file |
 | `ignore` | No | Comma-separated glob patterns to ignore |
+| `timezone` | No | Timezone for timestamps (default: `UTC`) |
+| `collapse_suggestions` | No | Collapse behavior: `auto` (>3 items), `always`, `never` (default: `auto`) |
+| `label_approve` | No | Custom label for approve verdict (default: `LGTM`) |
+| `label_changes_needed` | No | Custom label for changes_needed verdict (default: `CHANGES REQUESTED`) |
+| `label_hold` | No | Custom label for hold verdict (default: `HOLD`) |
 
 ## Outputs
 
 | Output | Description |
 |--------|-------------|
-| `verdict` | Review verdict: `approve`, `changes_needed`, or `hold` |
+| `verdict` | Review verdict: `approve`, `changes_needed`, `hold`, or `skipped` |
 | `summary` | Brief summary of the review |
 | `findings_count` | Number of issues found |
 
@@ -91,6 +96,19 @@ Or use the `conventions` input to specify a custom path.
     model: claude-sonnet-4-20250514
     api_key: ${{ secrets.OPEN_REVIEW_API_KEY }}
     ignore: "*.lock,dist/**,vendor/**"
+```
+
+### Custom Verdict Labels
+
+```yaml
+- uses: elliottlawson/open-review-action@v1
+  with:
+    provider: anthropic
+    model: claude-sonnet-4-20250514
+    api_key: ${{ secrets.OPEN_REVIEW_API_KEY }}
+    label_approve: "SHIP IT"
+    label_changes_needed: "BLOCKED"
+    label_hold: "DISCUSS"
 ```
 
 ## Configuration File
