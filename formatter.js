@@ -3,6 +3,7 @@ const METADATA_START = '<!-- open-review:meta';
 const METADATA_END = '-->';
 
 const TIMEZONE = process.env.TIMEZONE || 'UTC';
+const COLLAPSE_SUGGESTIONS = process.env.COLLAPSE_SUGGESTIONS || 'auto';
 
 const ICON_STOP = 'https://raw.githubusercontent.com/primer/octicons/main/icons/stop-16.svg';
 const ICON_DIFF_REMOVED = 'https://raw.githubusercontent.com/primer/octicons/main/icons/diff-removed-16.svg';
@@ -241,6 +242,10 @@ function formatForGitHub(result, version = 1, baseUrl = '') {
       }
       content += '\n';
     });
+
+    const shouldCollapse = COLLAPSE_SUGGESTIONS === 'always' ||
+      (COLLAPSE_SUGGESTIONS === 'auto' && suggestions.length > 3);
+
     body += formatSection({
       icon: ICON_LIGHT_BULB,
       title: 'Suggestions',
@@ -248,7 +253,7 @@ function formatForGitHub(result, version = 1, baseUrl = '') {
       countColor: '57606a',
       summary: result.sectionSummaries?.suggestions,
       content,
-      isCollapsible: true
+      isCollapsible: shouldCollapse
     });
   }
 

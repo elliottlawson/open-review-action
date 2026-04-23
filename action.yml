@@ -22,6 +22,10 @@ inputs:
     description: "Comma-separated glob patterns to ignore"
     required: false
     default: ""
+  collapse_suggestions:
+    description: "Collapse behavior for suggestions section: auto (collapse if >3), always, never"
+    required: false
+    default: "auto"
   timezone:
     description: "Timezone for timestamps (e.g., America/New_York, Europe/London, UTC). Defaults to UTC."
     required: false
@@ -100,6 +104,7 @@ runs:
         REPO: ${{ github.repository }}
         RESULT_FILE: ${{ steps.review.outputs.result_file }}
         TIMEZONE: ${{ inputs.timezone }}
+        COLLAPSE_SUGGESTIONS: ${{ inputs.collapse_suggestions }}
       run: |
         cd ${{ github.action_path }}
         node format-and-post.js
