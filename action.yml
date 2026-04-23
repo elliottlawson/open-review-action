@@ -6,26 +6,57 @@ branding:
 
 inputs:
   provider:
-    description: "LLM provider (anthropic, openai, openrouter)"
-    required: true
+    description: "LLM provider (anthropic, openai, openrouter). Falls back to .open-review.yml config."
+    required: false
+    default: ""
   model:
-    description: "Model to use (e.g., claude-sonnet-4-20250514)"
-    required: true
+    description: "Model to use (e.g., claude-sonnet-4-20250514). Falls back to .open-review.yml config."
+    required: false
+    default: ""
   api_key:
-    description: "API key for the provider"
-    required: true
+    description: "API key for the provider. Falls back to OPEN_REVIEW_API_KEY secret or .open-review.yml config."
+    required: false
+    default: ""
   conventions:
     description: "Path to conventions/instructions file (optional)"
     required: false
     default: ""
-  ignore:
-    description: "Comma-separated glob patterns to ignore"
+  prompt:
+    description: "Ephemeral focus for this review only (optional)"
+    required: false
+    default: ""
+  must_fix:
+    description: "Enable/disable must fix section (default: true)"
+    required: false
+    default: ""
+  should_fix:
+    description: "Enable/disable should fix section (default: true)"
+    required: false
+    default: ""
+  suggestions:
+    description: "Enable/disable suggestions section (default: true)"
+    required: false
+    default: ""
+  questions:
+    description: "Enable/disable questions section (default: true)"
+    required: false
+    default: ""
+  collapse_must_fix:
+    description: "Collapse behavior for must fix section: auto, always, never"
+    required: false
+    default: ""
+  collapse_should_fix:
+    description: "Collapse behavior for should fix section: auto, always, never"
     required: false
     default: ""
   collapse_suggestions:
-    description: "Collapse behavior for suggestions section: auto (collapse if >3), always, never"
+    description: "Collapse behavior for suggestions section: auto, always, never"
     required: false
-    default: "auto"
+    default: ""
+  collapse_questions:
+    description: "Collapse behavior for questions section: auto, always, never"
+    required: false
+    default: ""
   label_approve:
     description: "Custom primary label for approve verdict (default: LGTM)"
     required: false
@@ -42,10 +73,14 @@ inputs:
     description: "Timezone for timestamps (e.g., America/New_York, Europe/London, UTC). Defaults to UTC."
     required: false
     default: "UTC"
+  verbose:
+    description: "Show review progress in logs"
+    required: false
+    default: "false"
 
 outputs:
   verdict:
-    description: "Review verdict (approve, changes_needed, hold)"
+    description: "Review verdict (approve, changes_needed, hold, skipped)"
     value: ${{ steps.review.outputs.verdict }}
   summary:
     description: "Review summary"
@@ -53,6 +88,9 @@ outputs:
   findings_count:
     description: "Number of findings"
     value: ${{ steps.review.outputs.findings_count }}
+  skipped:
+    description: "Whether the review was skipped (true/false)"
+    value: ${{ steps.review.outputs.skipped }}
 
 runs:
   using: "composite"
@@ -80,13 +118,80 @@ runs:
     - name: Run Review
       id: review
       shell: bash
-      env:
-        OPEN_REVIEW_API_KEY: ${{ inputs.api_key }}
       run: |
         # Build review args
         REVIEW_ARGS="--diff origin/${{ github.event.pull_request.base.ref }} --json"
+
+        if [ -n "${{ inputs.provider }}" ]; then
+          REVIEW_ARGS="$REVIEW_ARGS --provider ${{ inputs.provider }}"
+        fi
+
+        if [ -n "${{ inputs.model }}" ]; then
+          REVIEW_ARGS="$REVIEW_ARGS --model ${{ inputs.model }}"
+        fi
+
+        if [ -n "${{ inputs.api_key }}" ]; then
+          REVIEW_ARGS="$REVIEW_ARGS --api-key ${{ inputs.api_key }}"
+        fi
+
         if [ -n "${{ inputs.conventions }}" ]; then
           REVIEW_ARGS="$REVIEW_ARGS --instructions-file ${{ inputs.conventions }}"
+        fi
+
+        if [ -n "${{ inputs.prompt }}" ]; then
+          REVIEW_ARGS="$REVIEW_ARGS --prompt ${{ inputs.prompt }}"
+        fi
+
+        if [ "${{ inputs.verbose }}" = "true" ]; then
+          REVIEW_ARGS="$REVIEW_ARGS --verbose"
+        fi
+
+        if [ -n "${{ inputs.timezone }}" ]; then
+          REVIEW_ARGS="$REVIEW_ARGS --timezone ${{ inputs.timezone }}"
+        fi
+
+        if [ -n "${{ inputs.must_fix }}" ]; then
+          REVIEW_ARGS="$REVIEW_ARGS --must-fix ${{ inputs.must_fix }}"
+        fi
+
+        if [ -n "${{ inputs.should_fix }}" ]; then
+          REVIEW_ARGS="$REVIEW_ARGS --should-fix ${{ inputs.should_fix }}"
+        fi
+
+        if [ -n "${{ inputs.suggestions }}" ]; then
+          REVIEW_ARGS="$REVIEW_ARGS --suggestions ${{ inputs.suggestions }}"
+        fi
+
+        if [ -n "${{ inputs.questions }}" ]; then
+          REVIEW_ARGS="$REVIEW_ARGS --questions ${{ inputs.questions }}"
+        fi
+
+        if [ -n "${{ inputs.collapse_must_fix }}" ]; then
+          REVIEW_ARGS="$REVIEW_ARGS --collapse-must-fix ${{ inputs.collapse_must_fix }}"
+        fi
+
+        if [ -n "${{ inputs.collapse_should_fix }}" ]; then
+          REVIEW_ARGS="$REVIEW_ARGS --collapse-should-fix ${{ inputs.collapse_should_fix }}"
+        fi
+
+        if [ -n "${{ inputs.collapse_suggestions }}" ]; then
+          REVIEW_ARGS="$REVIEW_ARGS --collapse-suggestions ${{ inputs.collapse_suggestions }}"
+        fi
+
+        if [ -n "${{ inputs.collapse_questions }}" ]; then
+          REVIEW_ARGS="$REVIEW_ARGS --collapse-questions ${{ inputs.collapse_questions }}"
+        fi
+
+        if [ -n "${{ inputs.label_approve }}" ]; then
+          REVIEW_ARGS="$REVIEW_ARGS --label-approve ${{ inputs.label_approve }}"
+        fi
+
+        if [ -n "${{ inputs.label_changes_needed }}" ]; then
+          REVIEW_ARGS="$REVIEW_ARGS --label-changes-needed ${{ inputs.label_changes_needed }}"
+        fi
+
+        if [ -n "${{ inputs.label_hold }}" ]; then
+          REVIEW_ARGS="$REVIEW_ARGS --label-hold ${{ inputs.label_hold }}"
         fi
 
         # Run review and save to temp file
@@ -115,11 +220,6 @@ runs:
         PR_NUMBER: ${{ github.event.pull_request.number }}
         REPO: ${{ github.repository }}
         RESULT_FILE: ${{ steps.review.outputs.result_file }}
-        TIMEZONE: ${{ inputs.timezone }}
-        COLLAPSE_SUGGESTIONS: ${{ inputs.collapse_suggestions }}
-        LABEL_APPROVE: ${{ inputs.label_approve }}
-        LABEL_CHANGES_NEEDED: ${{ inputs.label_changes_needed }}
-        LABEL_HOLD: ${{ inputs.label_hold }}
       run: |
         cd ${{ github.action_path }}
         node format-and-post.js

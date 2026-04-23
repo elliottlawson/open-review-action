@@ -32,18 +32,48 @@ jobs:
 
 ## Inputs
 
+### LLM Options
+
 | Input | Required | Description |
 |-------|----------|-------------|
-| `provider` | Yes | LLM provider: `anthropic`, `openai`, or `openrouter` |
-| `model` | Yes | Model name (e.g., `claude-sonnet-4-20250514`, `gpt-4o`) |
-| `api_key` | Yes | API key for the provider |
+| `provider` | No | LLM provider: `anthropic`, `openai`, or `openrouter`. Can also be set in `.open-review.yml`. |
+| `model` | No | Model name (e.g., `claude-sonnet-4-20250514`, `gpt-4o`). Can also be set in `.open-review.yml`. |
+| `api_key` | No | API key for the provider. Can also use `OPEN_REVIEW_API_KEY` secret or `.open-review.yml`. |
 | `conventions` | No | Path to conventions/instructions file |
-| `ignore` | No | Comma-separated glob patterns to ignore |
-| `timezone` | No | Timezone for timestamps (default: `UTC`) |
-| `collapse_suggestions` | No | Collapse behavior: `auto` (>3 items), `always`, `never` (default: `auto`) |
+| `prompt` | No | Ephemeral focus for this review only |
+| `verbose` | No | Show review progress in logs (default: `false`) |
+
+### Output Options
+
+| Input | Required | Description |
+|-------|----------|-------------|
+| `timezone` | No | IANA timezone for timestamps (default: `UTC`) |
+
+### Section Visibility
+
+| Input | Required | Description |
+|-------|----------|-------------|
+| `must_fix` | No | Enable/disable must fix section (default: `true`) |
+| `should_fix` | No | Enable/disable should fix section (default: `true`) |
+| `suggestions` | No | Enable/disable suggestions section (default: `true`) |
+| `questions` | No | Enable/disable questions section (default: `true`) |
+
+### Section Collapse
+
+| Input | Required | Description |
+|-------|----------|-------------|
+| `collapse_must_fix` | No | Collapse behavior: `auto`, `always`, `never` (default: `auto`) |
+| `collapse_should_fix` | No | Collapse behavior: `auto`, `always`, `never` (default: `auto`) |
+| `collapse_suggestions` | No | Collapse behavior: `auto`, `always`, `never` (default: `auto`) |
+| `collapse_questions` | No | Collapse behavior: `auto`, `always`, `never` (default: `auto`) |
+
+### Verdict Labels
+
+| Input | Required | Description |
+|-------|----------|-------------|
 | `label_approve` | No | Custom label for approve verdict (default: `LGTM`) |
-| `label_changes_needed` | No | Custom label for changes_needed verdict (default: `CHANGES REQUESTED`) |
-| `label_hold` | No | Custom label for hold verdict (default: `HOLD`) |
+| `label_changes_needed` | No | Custom label for changes_needed verdict (default: `Changes Needed`) |
+| `label_hold` | No | Custom label for hold verdict (default: `Hold`) |
 
 ## Outputs
 
@@ -52,17 +82,52 @@ jobs:
 | `verdict` | Review verdict: `approve`, `changes_needed`, `hold`, or `skipped` |
 | `summary` | Brief summary of the review |
 | `findings_count` | Number of issues found |
+| `skipped` | Whether the review was skipped (`true` or `false`) |
 
-## Conventions
+## Configuration File
 
-You can configure a conventions/instructions file via `.open-review.yml`:
+The underlying `open-review` CLI automatically reads `.open-review.yml` from your repository. Action inputs are passed to the CLI as flags and take precedence over config file values.
+
+**Precedence:** Action inputs (CLI flags) > `.open-review.yml` config > defaults
 
 ```yaml
+llm:
+  provider: anthropic
+  model: claude-sonnet-4-20250514
+
 review:
   instructions_file: .github/CONVENTIONS.md
-```
+  skip_if_only:
+    - "*.md"
+    - "*.lock"
 
-Or use the `conventions` input to specify a custom path.
+ignore:
+  - "*.lock"
+  - "dist/**"
+
+output:
+  timezone: America/New_York
+  sections:
+    must_fix:
+      enabled: true
+      collapse: auto
+    should_fix:
+      enabled: true
+      collapse: auto
+    suggestions:
+      enabled: true
+      collapse: always
+    questions:
+      enabled: true
+      collapse: auto
+  verdicts:
+    approve:
+      label: "SHIP IT"
+    changes_needed:
+      label: "BLOCKED"
+    hold:
+      label: "DISCUSS"
+```
 
 ## Examples
 
@@ -87,7 +152,7 @@ Or use the `conventions` input to specify a custom path.
     conventions: .github/review-rules.md
 ```
 
-### Ignoring Files
+### With Ephemeral Focus
 
 ```yaml
 - uses: elliottlawson/open-review-action@v1
@@ -95,7 +160,7 @@ Or use the `conventions` input to specify a custom path.
     provider: anthropic
     model: claude-sonnet-4-20250514
     api_key: ${{ secrets.OPEN_REVIEW_API_KEY }}
-    ignore: "*.lock,dist/**,vendor/**"
+    prompt: "Focus on security vulnerabilities in authentication code"
 ```
 
 ### Custom Verdict Labels
@@ -111,23 +176,41 @@ Or use the `conventions` input to specify a custom path.
     label_hold: "DISCUSS"
 ```
 
-## Configuration File
-
-You can also configure options via `.open-review.yml` in your repository:
+### Hide Suggestions Section
 
 ```yaml
-provider: anthropic
-model: claude-sonnet-4-20250514
-
-review:
-  instructions_file: .github/CONVENTIONS.md
-
-ignore:
-  - "*.lock"
-  - "dist/**"
+- uses: elliottlawson/open-review-action@v1
+  with:
+    provider: anthropic
+    model: claude-sonnet-4-20250514
+    api_key: ${{ secrets.OPEN_REVIEW_API_KEY }}
+    suggestions: false
 ```
 
-Action inputs override config file settings.
+### Collapse All Sections
+
+```yaml
+- uses: elliottlawson/open-review-action@v1
+  with:
+    provider: anthropic
+    model: claude-sonnet-4-20250514
+    api_key: ${{ secrets.OPEN_REVIEW_API_KEY }}
+    collapse_must_fix: always
+    collapse_should_fix: always
+    collapse_suggestions: always
+    collapse_questions: always
+```
+
+### Custom Timezone
+
+```yaml
+- uses: elliottlawson/open-review-action@v1
+  with:
+    provider: anthropic
+    model: claude-sonnet-4-20250514
+    api_key: ${{ secrets.OPEN_REVIEW_API_KEY }}
+    timezone: Europe/London
+```
 
 ## License
 

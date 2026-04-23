@@ -22,7 +22,7 @@ This project is a **GitHub Action** that posts AI-generated code reviews as comm
 - No horizontal rules between sections
 - Clickable file paths when PR metadata is available
 - Language-aware code blocks (`php`, `diff`, etc.) instead of generic `suggestion`
-- Collapsible `<details>` wrapper for Suggestions
+- Collapsible `<details>` wrapper for any section based on `collapse` config
 - Footer with version, timestamp, and hidden metadata comment
 
 ## Dependencies
@@ -34,9 +34,117 @@ This project is a **GitHub Action** that posts AI-generated code reviews as comm
 ## Environment
 
 - `GITHUB_TOKEN` — Required for posting/updating comments
-- `TIMEZONE` — Optional, defaults to `UTC`
 - `REPO`, `PR_NUMBER` — Set by `action.yml`
 - `RESULT_FILE` — Temp file path containing the CLI's JSON output
+
+## Core Service Interface
+
+The action shells out to the `open-review` CLI. The CLI reads `.open-review.yml` from the repo automatically. Action inputs are translated to CLI flags when non-empty.
+
+### CLI Invocation
+
+```bash
+open-review review . \
+  --diff origin/<base-ref> \
+  --json \
+  [ --provider <provider> ] \
+  [ --model <model> ] \
+  [ --api-key <api_key> ] \
+  [ --instructions-file <conventions> ] \
+  [ --prompt <prompt> ] \
+  [ --verbose ] \
+  [ --timezone <timezone> ] \
+  [ --must-fix <true|false> ] \
+  [ --should-fix <true|false> ] \
+  [ --suggestions <true|false> ] \
+  [ --questions <true|false> ] \
+  [ --collapse-must-fix <auto|always|never> ] \
+  [ --collapse-should-fix <auto|always|never> ] \
+  [ --collapse-suggestions <auto|always|never> ] \
+  [ --collapse-questions <auto|always|never> ] \
+  [ --label-approve <text> ] \
+  [ --label-changes-needed <text> ] \
+  [ --label-hold <text> ]
+```
+
+**Precedence**: CLI flags (action inputs) > `.open-review.yml` config > environment variables (`OPEN_REVIEW_API_KEY`).
+
+### JSON Output Contract
+
+The CLI writes a single JSON object to stdout. The action parses this from `RESULT_FILE`.
+
+#### Normal Review
+
+```typescript
+interface AgentOutput {
+  verdict: 'approve' | 'changes_needed' | 'hold';
+  summary: string;
+  findings: AgentFinding[];
+  sectionSummaries?: {
+    mustFix?: string;
+    shouldFix?: string;
+    questions?: string;
+    suggestions?: string;
+  };
+  stats: {
+    critical: number;
+    warnings: number;
+    suggestions: number;
+    tokens: number;
+  };
+  sections?: {
+    must_fix?: { enabled?: boolean; collapse?: 'auto' | 'always' | 'never' };
+    should_fix?: { enabled?: boolean; collapse?: 'auto' | 'always' | 'never' };
+    suggestions?: { enabled?: boolean; collapse?: 'auto' | 'always' | 'never' };
+    questions?: { enabled?: boolean; collapse?: 'auto' | 'always' | 'never' };
+  };
+  verdicts?: {
+    approve?: { label?: string };
+    changes_needed?: { label?: string };
+    hold?: { label?: string };
+  };
+  timezone?: string;
+}
+
+interface AgentFinding {
+  id?: string;
+  type: 'issue' | 'suggestion' | 'question';
+  severity: 'critical' | 'warning' | 'info';
+  category: string;
+  title: string;
+  description: string;
+  file?: string;
+  line?: number;
+  suggestedFix?: string;
+}
+```
+
+#### Skipped Review
+
+```typescript
+interface SkippedOutput {
+  skipped: true;
+  reason: string;
+  files: string[];
+}
+```
+
+**Action behavior**: When `skipped: true`, the action does **not** post a comment. It outputs `verdict=skipped`, `summary=reason`, `findings_count=0`, and `skipped=true`.
+
+### Formatter Inputs
+
+`format-and-post.js` reads the parsed JSON and passes it to `formatForGitHub(result, version, baseUrl)`. The formatter reads presentation settings directly from the JSON output.
+
+**JSON fields consumed by `formatter.js`**:
+
+| Field | Purpose |
+|---|---|
+| `result.timezone` | Timestamp formatting (default: `UTC`) |
+| `result.sections[key].collapse` | Per-section collapse behavior (default: `never`) |
+| `result.sections[key].enabled` | Per-section visibility (default: `true`) |
+| `result.verdicts[key].label` | Verdict label overrides |
+
+If these fields are missing (older CLI version), the formatter falls back to sensible defaults.
 
 ## Planning Directory
 
@@ -60,5 +168,6 @@ When changing action behavior:
 1. Check `plans/pending/` for existing specs
 2. If changing template rendering, update `formatter.js` directly (it's the source of truth)
 3. If changing how the action orchestrates or posts, update `format-and-post.js`
-4. Run `node --check` to verify syntax
-5. If the CLI output contract changes, check `plans/` for related specs and update accordingly
+4. If changing inputs/outputs or CLI passthrough, update `action.yml`
+5. Run `node --check` to verify syntax
+6. If the CLI output contract changes, update this doc and check `plans/` for related specs
