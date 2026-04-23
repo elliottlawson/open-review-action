@@ -4,6 +4,11 @@ const METADATA_END = '-->';
 
 const TIMEZONE = process.env.TIMEZONE || 'UTC';
 const COLLAPSE_SUGGESTIONS = process.env.COLLAPSE_SUGGESTIONS || 'auto';
+const LABEL_OVERRIDES = {
+  approve: process.env.LABEL_APPROVE || '',
+  changes_needed: process.env.LABEL_CHANGES_NEEDED || '',
+  hold: process.env.LABEL_HOLD || '',
+};
 
 const ICON_STOP = 'https://raw.githubusercontent.com/primer/octicons/main/icons/stop-16.svg';
 const ICON_DIFF_REMOVED = 'https://raw.githubusercontent.com/primer/octicons/main/icons/diff-removed-16.svg';
@@ -125,15 +130,42 @@ function formatSection({ icon, title, count, countColor, summary, content, isCol
   return section;
 }
 
-function formatForGitHub(result, version = 1, baseUrl = '') {
-  const verdicts = {
-    approve:        { badge: 'https://forthebadge.com/api/badges/generate?panels=2&primaryLabel=LGTM&secondaryLabel=approve%20and%20merge&primaryBGColor=%232ea44f&secondaryBGColor=%23ffffff&primaryTextColor=%23ffffff&secondaryTextColor=%232ea44f&primaryFontSize=14&primaryFontWeight=700&primaryLetterSpacing=1&primaryTextTransform=uppercase&secondaryFontSize=14&secondaryFontWeight=400&secondaryLetterSpacing=0&secondaryTextTransform=none' },
-    changes_needed: { badge: 'https://forthebadge.com/api/badges/generate?panels=2&primaryLabel=CHANGES%20REQUESTED&secondaryLabel=do%20not%20merge&primaryBGColor=%23d73a49&secondaryBGColor=%23ffffff&primaryTextColor=%23ffffff&secondaryTextColor=%23d73a49&primaryFontSize=14&primaryFontWeight=700&primaryLetterSpacing=1&primaryTextTransform=uppercase&secondaryFontSize=14&secondaryFontWeight=400&secondaryLetterSpacing=0&secondaryTextTransform=none' },
-    hold:           { badge: 'https://forthebadge.com/api/badges/generate?panels=2&primaryLabel=HOLD&secondaryLabel=let%27s%20discuss%20the%20approach&primaryBGColor=%23d4a017&secondaryBGColor=%23ffffff&primaryTextColor=%23ffffff&secondaryTextColor=%23d4a017&primaryFontSize=14&primaryFontWeight=700&primaryLetterSpacing=1&primaryTextTransform=uppercase&secondaryFontSize=14&secondaryFontWeight=400&secondaryLetterSpacing=0&secondaryTextTransform=none' }
+function generateVerdictBadge(verdict, labels = {}) {
+  const configs = {
+    approve: {
+      primaryLabel: 'LGTM',
+      secondaryLabel: 'approve and merge',
+      primaryBG: '2ea44f',
+      secondaryTextColor: '2ea44f',
+    },
+    changes_needed: {
+      primaryLabel: 'CHANGES REQUESTED',
+      secondaryLabel: 'do not merge',
+      primaryBG: 'd73a49',
+      secondaryTextColor: 'd73a49',
+    },
+    hold: {
+      primaryLabel: 'HOLD',
+      secondaryLabel: "let's discuss the approach",
+      primaryBG: 'd4a017',
+      secondaryTextColor: 'd4a017',
+    },
   };
 
-  const v = verdicts[result.verdict] || verdicts.hold;
-  let body = `<img src="${v.badge}" height="32" alt="">\n\n`;
+  const config = configs[verdict] || configs.hold;
+  const primaryLabel = labels.primary || config.primaryLabel;
+  const secondaryLabel = labels.secondary || config.secondaryLabel;
+
+  return `https://forthebadge.com/api/badges/generate?panels=2&primaryLabel=${encodeURIComponent(primaryLabel)}&secondaryLabel=${encodeURIComponent(secondaryLabel)}&primaryBGColor=%23${config.primaryBG}&secondaryBGColor=%23ffffff&primaryTextColor=%23ffffff&secondaryTextColor=%23${config.secondaryTextColor}&primaryFontSize=14&primaryFontWeight=700&primaryLetterSpacing=1&primaryTextTransform=uppercase&secondaryFontSize=14&secondaryFontWeight=400&secondaryLetterSpacing=0&secondaryTextTransform=none`;
+}
+
+function formatForGitHub(result, version = 1, baseUrl = '') {
+  const labelOverride = LABEL_OVERRIDES[result.verdict];
+  const verdictLabels = labelOverride
+    ? { primary: labelOverride }
+    : result.verdictLabels;
+  const badge = generateVerdictBadge(result.verdict, verdictLabels);
+  let body = `<img src="${badge}" height="32" alt="">\n\n`;
 
   if (result.verdict !== 'approve' && result.summary) {
     body += `${result.summary}\n\n`;
