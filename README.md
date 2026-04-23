@@ -27,7 +27,7 @@ jobs:
         with:
           provider: anthropic
           model: claude-sonnet-4-20250514
-          api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          api_key: ${{ secrets.OPEN_REVIEW_API_KEY }}
 ```
 
 ## Inputs
@@ -68,7 +68,7 @@ Or use the `conventions` input to specify a custom path.
   with:
     provider: openai
     model: gpt-4o
-    api_key: ${{ secrets.OPENAI_API_KEY }}
+    api_key: ${{ secrets.OPEN_REVIEW_API_KEY }}
 ```
 
 ### With Custom Conventions
@@ -78,7 +78,7 @@ Or use the `conventions` input to specify a custom path.
   with:
     provider: anthropic
     model: claude-sonnet-4-20250514
-    api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+    api_key: ${{ secrets.OPEN_REVIEW_API_KEY }}
     conventions: .github/review-rules.md
 ```
 
@@ -89,7 +89,7 @@ Or use the `conventions` input to specify a custom path.
   with:
     provider: anthropic
     model: claude-sonnet-4-20250514
-    api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+    api_key: ${{ secrets.OPEN_REVIEW_API_KEY }}
     ignore: "*.lock,dist/**,vendor/**"
 ```
 
@@ -102,7 +102,7 @@ provider: anthropic
 model: claude-sonnet-4-20250514
 
 review:
-  conventions: .github/CONVENTIONS.md
+  instructions_file: .github/CONVENTIONS.md
 
 ignore:
   - "*.lock"

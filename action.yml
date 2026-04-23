@@ -15,7 +15,7 @@ inputs:
     description: "API key for the provider"
     required: true
   conventions:
-    description: "Path to conventions file (optional, auto-detected by default)"
+    description: "Path to conventions/instructions file (optional)"
     required: false
     default: ""
   ignore:
@@ -29,7 +29,7 @@ inputs:
 
 outputs:
   verdict:
-    description: "Review verdict (approve, request_changes, comment)"
+    description: "Review verdict (approve, changes_needed, hold)"
     value: ${{ steps.review.outputs.verdict }}
   summary:
     description: "Review summary"
@@ -65,14 +65,12 @@ runs:
       id: review
       shell: bash
       env:
-        ANTHROPIC_API_KEY: ${{ inputs.provider == 'anthropic' && inputs.api_key || '' }}
-        OPENAI_API_KEY: ${{ inputs.provider == 'openai' && inputs.api_key || '' }}
-        OPENROUTER_API_KEY: ${{ inputs.provider == 'openrouter' && inputs.api_key || '' }}
+        OPEN_REVIEW_API_KEY: ${{ inputs.api_key }}
       run: |
         # Build review args
         REVIEW_ARGS="--diff origin/${{ github.event.pull_request.base.ref }} --json"
         if [ -n "${{ inputs.conventions }}" ]; then
-          REVIEW_ARGS="$REVIEW_ARGS --instructions ${{ inputs.conventions }}"
+          REVIEW_ARGS="$REVIEW_ARGS --instructions-file ${{ inputs.conventions }}"
         fi
 
         # Run review and save to temp file
@@ -80,10 +78,19 @@ runs:
         open-review review . $REVIEW_ARGS > "$RESULT_FILE"
         echo "result_file=$RESULT_FILE" >> $GITHUB_OUTPUT
 
-        # Parse outputs
-        echo "verdict=$(jq -r '.recommendation' "$RESULT_FILE")" >> $GITHUB_OUTPUT
-        echo "summary=$(jq -r '.summary' "$RESULT_FILE" | head -c 1000)" >> $GITHUB_OUTPUT
-        echo "findings_count=$(jq '.findings | length' "$RESULT_FILE")" >> $GITHUB_OUTPUT
+        # Parse outputs (handle skipped reviews)
+        SKIPPED=$(jq -r '.skipped // false' "$RESULT_FILE")
+        if [ "$SKIPPED" = "true" ]; then
+          echo "verdict=skipped" >> $GITHUB_OUTPUT
+          echo "summary=$(jq -r '.reason' "$RESULT_FILE")" >> $GITHUB_OUTPUT
+          echo "findings_count=0" >> $GITHUB_OUTPUT
+          echo "skipped=true" >> $GITHUB_OUTPUT
+        else
+          echo "verdict=$(jq -r '.verdict' "$RESULT_FILE")" >> $GITHUB_OUTPUT
+          echo "summary=$(jq -r '.summary' "$RESULT_FILE" | head -c 1000)" >> $GITHUB_OUTPUT
+          echo "findings_count=$(jq '.findings | length' "$RESULT_FILE")" >> $GITHUB_OUTPUT
+          echo "skipped=false" >> $GITHUB_OUTPUT
+        fi
 
     - name: Post Review
       shell: bash

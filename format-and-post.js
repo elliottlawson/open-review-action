@@ -21,6 +21,13 @@ async function main() {
   // Read the ReviewResult from core CLI
   const result = JSON.parse(fs.readFileSync(process.env.RESULT_FILE, 'utf8'));
 
+  // Handle skipped reviews — don't post a comment
+  if (result.skipped) {
+    console.log(`Review skipped: ${result.reason}`);
+    console.log(`Files: ${result.files.join(', ')}`);
+    return;
+  }
+
   // Find existing Open Review comment or create new one
   const existingComment = await findExistingReviewComment(octokit, owner, repo, prNumber);
 
