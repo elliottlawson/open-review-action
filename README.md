@@ -44,20 +44,20 @@ jobs:
 
 | Output | Description |
 |--------|-------------|
-| `verdict` | Review verdict: `approve`, `request_changes`, or `comment` |
+| `verdict` | Review verdict: `approve`, `changes_needed`, or `hold` |
 | `summary` | Brief summary of the review |
 | `findings_count` | Number of issues found |
 
 ## Conventions
 
-The action automatically looks for a conventions file in these locations:
-- `.open-review/CONVENTIONS.md`
-- `CONVENTIONS.md`
-- `.github/CONVENTIONS.md`
-- `docs/CONVENTIONS.md`
-- `CLAUDE.md`
+You can configure a conventions/instructions file via `.open-review.yml`:
 
-Or specify a custom path with the `conventions` input.
+```yaml
+review:
+  instructions_file: .github/CONVENTIONS.md
+```
+
+Or use the `conventions` input to specify a custom path.
 
 ## Examples
 

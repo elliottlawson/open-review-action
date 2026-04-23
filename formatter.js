@@ -126,12 +126,12 @@ function formatSection({ icon, title, count, countColor, summary, content, isCol
 
 function formatForGitHub(result, version = 1, baseUrl = '') {
   const verdicts = {
-    approve:         { badge: 'https://forthebadge.com/api/badges/generate?panels=2&primaryLabel=LGTM&secondaryLabel=approve%20and%20merge&primaryBGColor=%232ea44f&secondaryBGColor=%23ffffff&primaryTextColor=%23ffffff&secondaryTextColor=%232ea44f&primaryFontSize=14&primaryFontWeight=700&primaryLetterSpacing=1&primaryTextTransform=uppercase&secondaryFontSize=14&secondaryFontWeight=400&secondaryLetterSpacing=0&secondaryTextTransform=none' },
-    request_changes: { badge: 'https://forthebadge.com/api/badges/generate?panels=2&primaryLabel=CHANGES%20REQUESTED&secondaryLabel=do%20not%20merge&primaryBGColor=%23d73a49&secondaryBGColor=%23ffffff&primaryTextColor=%23ffffff&secondaryTextColor=%23d73a49&primaryFontSize=14&primaryFontWeight=700&primaryLetterSpacing=1&primaryTextTransform=uppercase&secondaryFontSize=14&secondaryFontWeight=400&secondaryLetterSpacing=0&secondaryTextTransform=none' },
-    comment:         { badge: 'https://forthebadge.com/api/badges/generate?panels=2&primaryLabel=HOLD&secondaryLabel=let%27s%20discuss%20the%20approach&primaryBGColor=%23d4a017&secondaryBGColor=%23ffffff&primaryTextColor=%23ffffff&secondaryTextColor=%23d4a017&primaryFontSize=14&primaryFontWeight=700&primaryLetterSpacing=1&primaryTextTransform=uppercase&secondaryFontSize=14&secondaryFontWeight=400&secondaryLetterSpacing=0&secondaryTextTransform=none' }
+    approve:        { badge: 'https://forthebadge.com/api/badges/generate?panels=2&primaryLabel=LGTM&secondaryLabel=approve%20and%20merge&primaryBGColor=%232ea44f&secondaryBGColor=%23ffffff&primaryTextColor=%23ffffff&secondaryTextColor=%232ea44f&primaryFontSize=14&primaryFontWeight=700&primaryLetterSpacing=1&primaryTextTransform=uppercase&secondaryFontSize=14&secondaryFontWeight=400&secondaryLetterSpacing=0&secondaryTextTransform=none' },
+    changes_needed: { badge: 'https://forthebadge.com/api/badges/generate?panels=2&primaryLabel=CHANGES%20REQUESTED&secondaryLabel=do%20not%20merge&primaryBGColor=%23d73a49&secondaryBGColor=%23ffffff&primaryTextColor=%23ffffff&secondaryTextColor=%23d73a49&primaryFontSize=14&primaryFontWeight=700&primaryLetterSpacing=1&primaryTextTransform=uppercase&secondaryFontSize=14&secondaryFontWeight=400&secondaryLetterSpacing=0&secondaryTextTransform=none' },
+    hold:           { badge: 'https://forthebadge.com/api/badges/generate?panels=2&primaryLabel=HOLD&secondaryLabel=let%27s%20discuss%20the%20approach&primaryBGColor=%23d4a017&secondaryBGColor=%23ffffff&primaryTextColor=%23ffffff&secondaryTextColor=%23d4a017&primaryFontSize=14&primaryFontWeight=700&primaryLetterSpacing=1&primaryTextTransform=uppercase&secondaryFontSize=14&secondaryFontWeight=400&secondaryLetterSpacing=0&secondaryTextTransform=none' }
   };
 
-  const v = verdicts[result.verdict] || verdicts.comment;
+  const v = verdicts[result.verdict] || verdicts.hold;
   let body = `<img src="${v.badge}" height="32" alt="">\n\n`;
 
   if (result.verdict !== 'approve' && result.summary) {
