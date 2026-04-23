@@ -37,3 +37,28 @@ This project is a **GitHub Action** that posts AI-generated code reviews as comm
 - `TIMEZONE` — Optional, defaults to `UTC`
 - `REPO`, `PR_NUMBER` — Set by `action.yml`
 - `RESULT_FILE` — Temp file path containing the CLI's JSON output
+
+## Planning Directory
+
+This project uses a `plans/` directory (ignored by git) to track pending and completed work:
+
+```
+plans/
+├── pending/     # Work waiting to be picked up
+└── complete/    # Work that has been finished
+```
+
+- **Starting work**: Check `plans/pending/` for the next spec to implement
+- **Finishing work**: Move the completed plan from `plans/pending/` to `plans/complete/`
+
+This is a lightweight coordination system for tracking what has been specced vs what has been built.
+
+## Change Workflow
+
+When changing action behavior:
+
+1. Check `plans/pending/` for existing specs
+2. If changing template rendering, update `formatter.js` directly (it's the source of truth)
+3. If changing how the action orchestrates or posts, update `format-and-post.js`
+4. Run `node --check` to verify syntax
+5. If the CLI output contract changes, check `plans/` for related specs and update accordingly
