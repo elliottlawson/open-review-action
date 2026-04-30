@@ -6,19 +6,19 @@ branding:
 
 inputs:
   provider:
-    description: "LLM provider (anthropic, openai, openrouter). Falls back to .open-review.yml config."
+    description: "LLM provider (anthropic, openai, openrouter). Falls back to .open-review/config.yml config."
     required: false
     default: ""
   model:
-    description: "Model to use (e.g., claude-sonnet-4-20250514). Falls back to .open-review.yml config."
+    description: "Model to use (e.g., claude-sonnet-4-20250514). Falls back to .open-review/config.yml config."
     required: false
     default: ""
   api_key:
-    description: "API key for the provider. Falls back to OPEN_REVIEW_API_KEY secret or .open-review.yml config."
+    description: "API key for the provider. Falls back to OPEN_REVIEW_API_KEY secret or .open-review/config.yml config."
     required: false
     default: ""
-  conventions:
-    description: "Path to conventions/instructions file (optional)"
+  config_path:
+    description: "Path to .open-review/config.yml (optional, defaults to repo root)"
     required: false
     default: ""
   prompt:
@@ -102,12 +102,7 @@ runs:
 
     - name: Install Open Review
       shell: bash
-      run: |
-        git clone --depth 1 https://github.com/elliottlawson/open-review.git /tmp/open-review
-        cd /tmp/open-review
-        npm install --legacy-peer-deps
-        npm run build
-        npm link
+      run: npm install -g @elliottlawson/open-review
 
     - name: Install Action Dependencies
       shell: bash
@@ -134,8 +129,8 @@ runs:
           REVIEW_ARGS="$REVIEW_ARGS --api-key ${{ inputs.api_key }}"
         fi
 
-        if [ -n "${{ inputs.conventions }}" ]; then
-          REVIEW_ARGS="$REVIEW_ARGS --instructions-file ${{ inputs.conventions }}"
+        if [ -n "${{ inputs.config_path }}" ]; then
+          REVIEW_ARGS="$REVIEW_ARGS --config ${{ inputs.config_path }}"
         fi
 
         if [ -n "${{ inputs.prompt }}" ]; then
