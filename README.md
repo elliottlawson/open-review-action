@@ -36,10 +36,10 @@ jobs:
 
 | Input | Required | Description |
 |-------|----------|-------------|
-| `provider` | No | LLM provider: `anthropic`, `openai`, or `openrouter`. Can also be set in `.open-review.yml`. |
-| `model` | No | Model name (e.g., `claude-sonnet-4-20250514`, `gpt-4o`). Can also be set in `.open-review.yml`. |
-| `api_key` | No | API key for the provider. Can also use `OPEN_REVIEW_API_KEY` secret or `.open-review.yml`. |
-| `conventions` | No | Path to conventions/instructions file |
+| `provider` | No | LLM provider: `anthropic`, `openai`, or `openrouter`. Can also be set in `.open-review/config.yml`. |
+| `model` | No | Model name (e.g., `claude-sonnet-4-20250514`, `gpt-4o`). Can also be set in `.open-review/config.yml`. |
+| `api_key` | No | API key for the provider. Can also use `OPEN_REVIEW_API_KEY` secret or `.open-review/config.yml`. |
+| `config_path` | No | Path to `.open-review/config.yml` (optional, defaults to repo root) |
 | `prompt` | No | Ephemeral focus for this review only |
 | `verbose` | No | Show review progress in logs (default: `false`) |
 
@@ -86,24 +86,22 @@ jobs:
 
 ## Configuration File
 
-The underlying `open-review` CLI automatically reads `.open-review.yml` from your repository. Action inputs are passed to the CLI as flags and take precedence over config file values.
+The underlying `open-review` CLI automatically reads `.open-review/config.yml` from your repository. Action inputs are passed to the CLI as flags and take precedence over config file values.
 
-**Precedence:** Action inputs (CLI flags) > `.open-review.yml` config > defaults
+**Precedence:** Action inputs (CLI flags) > `.open-review/config.yml` config > defaults
 
 ```yaml
+version: "1.0"
+
 llm:
   provider: anthropic
   model: claude-sonnet-4-20250514
+  api_key: "${OPEN_REVIEW_API_KEY}"
 
 review:
-  instructions_file: .github/CONVENTIONS.md
-  skip_if_only:
-    - "*.md"
-    - "*.lock"
-
-ignore:
-  - "*.lock"
-  - "dist/**"
+  methodology: default
+  presets: auto
+  conventions: auto
 
 output:
   timezone: America/New_York
@@ -129,6 +127,8 @@ output:
       label: "DISCUSS"
 ```
 
+Methodology and presets are built into the harness. You can customize them locally by running `npx open-review publish` or `npx open-review preset apply <name>`.
+
 ## Examples
 
 ### Using OpenAI
@@ -141,7 +141,7 @@ output:
     api_key: ${{ secrets.OPEN_REVIEW_API_KEY }}
 ```
 
-### With Custom Conventions
+### With Custom Config Path
 
 ```yaml
 - uses: elliottlawson/open-review-action@v1
@@ -149,7 +149,7 @@ output:
     provider: anthropic
     model: claude-sonnet-4-20250514
     api_key: ${{ secrets.OPEN_REVIEW_API_KEY }}
-    conventions: .github/review-rules.md
+    config_path: .github/open-review/config.yml
 ```
 
 ### With Ephemeral Focus
