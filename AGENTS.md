@@ -29,7 +29,7 @@ This project is a **GitHub Action** that posts AI-generated code reviews as comm
 
 - `@octokit/rest` — GitHub API client
 - Node 22 (via `actions/setup-node@v4`)
-- `open-review` CLI (installed at runtime from `elliottlawson/open-review`)
+- `open-review` CLI (installed at runtime via `npm install -g open-review@1`)
 
 ## Environment
 
@@ -39,7 +39,7 @@ This project is a **GitHub Action** that posts AI-generated code reviews as comm
 
 ## Core Service Interface
 
-The action shells out to the `open-review` CLI. The CLI reads `.open-review.yml` from the repo automatically. Action inputs are translated to CLI flags when non-empty.
+The action shells out to the `open-review` CLI. The CLI reads `.open-review/config.yml` from the repo automatically. Action inputs are translated to CLI flags when non-empty.
 
 ### CLI Invocation
 
@@ -50,7 +50,7 @@ open-review review . \
   [ --provider <provider> ] \
   [ --model <model> ] \
   [ --api-key <api_key> ] \
-  [ --instructions-file <conventions> ] \
+  [ --config <config_path> ] \
   [ --prompt <prompt> ] \
   [ --verbose ] \
   [ --timezone <timezone> ] \
@@ -67,7 +67,7 @@ open-review review . \
   [ --label-hold <text> ]
 ```
 
-**Precedence**: CLI flags (action inputs) > `.open-review.yml` config > environment variables (`OPEN_REVIEW_API_KEY`).
+**Precedence**: CLI flags (action inputs) > `.open-review/config.yml` config > environment variables (`OPEN_REVIEW_API_KEY`).
 
 ### JSON Output Contract
 
@@ -104,6 +104,7 @@ interface AgentOutput {
     hold?: { label?: string };
   };
   timezone?: string;
+  disciplineWarnings?: string[];
 }
 
 interface AgentFinding {
@@ -145,6 +146,16 @@ interface SkippedOutput {
 | `result.verdicts[key].label` | Verdict label overrides |
 
 If these fields are missing (older CLI version), the formatter falls back to sensible defaults.
+
+### Architecture Note
+
+The action does **not** bundle methodology, presets, or prompts. The harness reads these from the checked-out repo at runtime:
+- **Config**: `.open-review/config.yml` (optional; harness falls back to built-in defaults)
+- **Methodology**: Built-in default, or local override at `.open-review/methodology/core.md`
+- **Presets**: Built-in defaults, or local overrides at `.open-review/presets/`
+- **Conventions**: Auto-discovered by the agent, or specified in config
+
+This keeps the action thin and ensures the harness is the single source of truth for review behavior.
 
 ## Planning Directory
 
