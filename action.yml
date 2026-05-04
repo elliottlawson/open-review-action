@@ -102,7 +102,7 @@ runs:
 
     - name: Install Open Review
       shell: bash
-      run: npm install -g open-review@1
+      run: npm install -g @elliottlawson/open-review
 
     - name: Install Action Dependencies
       shell: bash
