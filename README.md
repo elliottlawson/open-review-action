@@ -47,7 +47,7 @@ jobs:
 
 | Input | Required | Description |
 |-------|----------|-------------|
-| `timezone` | No | IANA timezone for timestamps (default: `UTC`) |
+| `timezone` | No | IANA timezone for timestamps. Falls back to `.open-review/config.yml` or harness default. |
 
 ### Section Visibility
 

@@ -140,7 +140,7 @@ interface SkippedOutput {
 
 | Field | Purpose |
 |---|---|
-| `result.timezone` | Timestamp formatting (default: `UTC`) |
+| `result.timezone` | Timestamp formatting (falls back to harness default) |
 | `result.sections[key].collapse` | Per-section collapse behavior (default: `never`) |
 | `result.sections[key].enabled` | Per-section visibility (default: `true`) |
 | `result.verdicts[key].label` | Verdict label overrides |

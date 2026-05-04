@@ -70,9 +70,9 @@ inputs:
     required: false
     default: ""
   timezone:
-    description: "Timezone for timestamps (e.g., America/New_York, Europe/London, UTC). Defaults to UTC."
+    description: "Timezone for timestamps (e.g., America/New_York, Europe/London, UTC). Falls back to .open-review/config.yml or harness default."
     required: false
-    default: "UTC"
+    default: ""
   verbose:
     description: "Show review progress in logs"
     required: false
