@@ -6,19 +6,19 @@ branding:
 
 inputs:
   provider:
-    description: "LLM provider (anthropic, openai, openrouter). Falls back to .open-review/config.yml config."
+    description: "LLM provider (anthropic, openai, openrouter). Default: openrouter"
     required: false
     default: ""
   model:
-    description: "Model to use (e.g., claude-sonnet-4-20250514). Falls back to .open-review/config.yml config."
+    description: "Model to use (e.g., moonshotai/kimi-k2.6, claude-sonnet-4-20250514). Default: moonshotai/kimi-k2.6"
     required: false
     default: ""
   api_key:
-    description: "API key for the provider. Falls back to OPEN_REVIEW_API_KEY secret or .open-review/config.yml config."
+    description: "API key for the provider (usually the OPEN_REVIEW_API_KEY secret)"
     required: false
     default: ""
   config_path:
-    description: "Path to .open-review/config.yml (optional, defaults to repo root)"
+    description: "DEPRECATED - the opencode engine does not read .open-review/config.yml. This input is ignored."
     required: false
     default: ""
   prompt:
@@ -62,15 +62,15 @@ inputs:
     required: false
     default: ""
   label_changes_needed:
-    description: "Custom primary label for changes_needed verdict (default: CHANGES REQUESTED)"
+    description: "Custom primary label for changes_needed verdict (default: Changes Needed)"
     required: false
     default: ""
   label_hold:
-    description: "Custom primary label for hold verdict (default: HOLD)"
+    description: "Custom primary label for hold verdict (default: Hold)"
     required: false
     default: ""
   timezone:
-    description: "Timezone for timestamps (e.g., America/New_York, Europe/London, UTC). Falls back to .open-review/config.yml or harness default."
+    description: "Timezone for timestamps (e.g., America/New_York, Europe/London, UTC). Default: America/New_York"
     required: false
     default: ""
   verbose:
@@ -100,9 +100,9 @@ runs:
       with:
         node-version: "22"
 
-    - name: Install Open Review
+    - name: Install opencode
       shell: bash
-      run: npm install -g @elliottlawson/open-review
+      run: npm install -g opencode-ai
 
     - name: Install Action Dependencies
       shell: bash
@@ -110,100 +110,123 @@ runs:
         cd ${{ github.action_path }}
         npm install
 
+    - name: Install Review Skills
+      shell: bash
+      run: |
+        # Ref-pinned until the skills land on the repo's default branch.
+        # Once merged, drop the "#$SKILLS_REF" suffix.
+        SKILLS_REPO="elliottlawson/open-review"
+        SKILLS_REF="feat/composable-review-skills"
+        npx -y skills add "${SKILLS_REPO}#${SKILLS_REF}" --skill review --skill review-output-json -y
+
     - name: Run Review
       id: review
       shell: bash
+      env:
+        OPENCODE_CONFIG_CONTENT: '{"permission":{"edit":"deny"}}'
+        INPUT_PROVIDER: ${{ inputs.provider }}
+        INPUT_MODEL: ${{ inputs.model }}
+        INPUT_API_KEY: ${{ inputs.api_key }}
+        INPUT_CONFIG_PATH: ${{ inputs.config_path }}
+        INPUT_PROMPT: ${{ inputs.prompt }}
+        INPUT_VERBOSE: ${{ inputs.verbose }}
       run: |
-        # Build review args
-        REVIEW_ARGS="--diff origin/${{ github.event.pull_request.base.ref }} --json"
+        set -euo pipefail
 
-        if [ -n "${{ inputs.provider }}" ]; then
-          REVIEW_ARGS="$REVIEW_ARGS --provider ${{ inputs.provider }}"
+        BASE_REF="${{ github.event.pull_request.base.ref }}"
+
+        if [ -n "$INPUT_CONFIG_PATH" ]; then
+          echo "::warning::The config_path input is deprecated and ignored: the opencode engine does not read .open-review/config.yml"
         fi
 
-        if [ -n "${{ inputs.model }}" ]; then
-          REVIEW_ARGS="$REVIEW_ARGS --model ${{ inputs.model }}"
+        # Resolve provider/model (defaults match the review-ci-setup skill)
+        PROVIDER="${INPUT_PROVIDER:-openrouter}"
+        MODEL="${INPUT_MODEL:-moonshotai/kimi-k2.6}"
+
+        # Map the API key onto the provider's env var for opencode
+        if [ -n "$INPUT_API_KEY" ]; then
+          case "$PROVIDER" in
+            openrouter) export OPENROUTER_API_KEY="$INPUT_API_KEY" ;;
+            anthropic)  export ANTHROPIC_API_KEY="$INPUT_API_KEY" ;;
+            openai)     export OPENAI_API_KEY="$INPUT_API_KEY" ;;
+            *) echo "::warning::Unknown provider '$PROVIDER' - set its API key env var via the workflow env instead" ;;
+          esac
         fi
 
-        if [ -n "${{ inputs.api_key }}" ]; then
-          REVIEW_ARGS="$REVIEW_ARGS --api-key ${{ inputs.api_key }}"
-        fi
-
-        if [ -n "${{ inputs.config_path }}" ]; then
-          REVIEW_ARGS="$REVIEW_ARGS --config ${{ inputs.config_path }}"
-        fi
-
-        if [ -n "${{ inputs.prompt }}" ]; then
-          REVIEW_ARGS="$REVIEW_ARGS --prompt ${{ inputs.prompt }}"
-        fi
-
-        if [ "${{ inputs.verbose }}" = "true" ]; then
-          REVIEW_ARGS="$REVIEW_ARGS --verbose"
-        fi
-
-        if [ -n "${{ inputs.timezone }}" ]; then
-          REVIEW_ARGS="$REVIEW_ARGS --timezone ${{ inputs.timezone }}"
-        fi
-
-        if [ -n "${{ inputs.must_fix }}" ]; then
-          REVIEW_ARGS="$REVIEW_ARGS --must-fix ${{ inputs.must_fix }}"
-        fi
-
-        if [ -n "${{ inputs.should_fix }}" ]; then
-          REVIEW_ARGS="$REVIEW_ARGS --should-fix ${{ inputs.should_fix }}"
-        fi
-
-        if [ -n "${{ inputs.suggestions }}" ]; then
-          REVIEW_ARGS="$REVIEW_ARGS --suggestions ${{ inputs.suggestions }}"
-        fi
-
-        if [ -n "${{ inputs.questions }}" ]; then
-          REVIEW_ARGS="$REVIEW_ARGS --questions ${{ inputs.questions }}"
-        fi
-
-        if [ -n "${{ inputs.collapse_must_fix }}" ]; then
-          REVIEW_ARGS="$REVIEW_ARGS --collapse-must-fix ${{ inputs.collapse_must_fix }}"
-        fi
-
-        if [ -n "${{ inputs.collapse_should_fix }}" ]; then
-          REVIEW_ARGS="$REVIEW_ARGS --collapse-should-fix ${{ inputs.collapse_should_fix }}"
-        fi
-
-        if [ -n "${{ inputs.collapse_suggestions }}" ]; then
-          REVIEW_ARGS="$REVIEW_ARGS --collapse-suggestions ${{ inputs.collapse_suggestions }}"
-        fi
-
-        if [ -n "${{ inputs.collapse_questions }}" ]; then
-          REVIEW_ARGS="$REVIEW_ARGS --collapse-questions ${{ inputs.collapse_questions }}"
-        fi
-
-        if [ -n "${{ inputs.label_approve }}" ]; then
-          REVIEW_ARGS="$REVIEW_ARGS --label-approve ${{ inputs.label_approve }}"
-        fi
-
-        if [ -n "${{ inputs.label_changes_needed }}" ]; then
-          REVIEW_ARGS="$REVIEW_ARGS --label-changes-needed ${{ inputs.label_changes_needed }}"
-        fi
-
-        if [ -n "${{ inputs.label_hold }}" ]; then
-          REVIEW_ARGS="$REVIEW_ARGS --label-hold ${{ inputs.label_hold }}"
-        fi
-
-        # Run review and save to temp file
         RESULT_FILE=$(mktemp)
-        open-review review . $REVIEW_ARGS > "$RESULT_FILE"
         echo "result_file=$RESULT_FILE" >> $GITHUB_OUTPUT
+
+        write_skipped_outputs() {
+          echo "verdict=skipped" >> $GITHUB_OUTPUT
+          {
+            echo "summary<<OPEN_REVIEW_EOF"
+            jq -r '.reason' "$RESULT_FILE"
+            echo "OPEN_REVIEW_EOF"
+          } >> $GITHUB_OUTPUT
+          echo "findings_count=0" >> $GITHUB_OUTPUT
+          echo "skipped=true" >> $GITHUB_OUTPUT
+        }
+
+        # Verify the base ref exists (requires actions/checkout with fetch-depth: 0)
+        if ! git rev-parse --verify --quiet "origin/$BASE_REF" > /dev/null; then
+          echo "::error::Base ref origin/$BASE_REF not found. Use actions/checkout@v4 with fetch-depth: 0."
+          exit 1
+        fi
+
+        # Skip empty diffs without invoking the model
+        if git diff --quiet "origin/$BASE_REF...HEAD"; then
+          jq -n '{skipped: true, reason: "No changes to review", files: []}' > "$RESULT_FILE"
+          write_skipped_outputs
+          exit 0
+        fi
+
+        # Build the review instruction
+        INSTRUCTION="Use the review-output-json skill to review a code change in this repository.
+
+        The change to review is the diff produced by: git diff origin/$BASE_REF...HEAD
+
+        Run that command to see the diff, then follow the review-output-json skill exactly. Your final message must contain only the JSON object the skill specifies - no preamble, no commentary, no markdown fences."
+
+        if [ -n "$INPUT_PROMPT" ]; then
+          INSTRUCTION="$INSTRUCTION
+
+        Additional focus for this review: $INPUT_PROMPT"
+        fi
+
+        VERBOSE_FLAG=""
+        if [ "$INPUT_VERBOSE" = "true" ]; then
+          VERBOSE_FLAG="--print-logs"
+        fi
+
+        # Run the review. --auto approves any permission prompts so CI never hangs;
+        # OPENCODE_CONFIG_CONTENT denies file edits (review is read-only).
+        RAW_FILE=$(mktemp)
+        opencode run --auto $VERBOSE_FLAG --model "$PROVIDER/$MODEL" "$INSTRUCTION" > "$RAW_FILE"
+
+        # Strip any markdown fences / commentary and validate the JSON
+        if ! node "${{ github.action_path }}/extract-json.js" "$RAW_FILE" > "$RESULT_FILE"; then
+          echo "::error::Review did not produce valid JSON. See raw output above."
+          exit 1
+        fi
+        rm -f "$RAW_FILE"
 
         # Parse outputs (handle skipped reviews)
         SKIPPED=$(jq -r '.skipped // false' "$RESULT_FILE")
         if [ "$SKIPPED" = "true" ]; then
-          echo "verdict=skipped" >> $GITHUB_OUTPUT
-          echo "summary=$(jq -r '.reason' "$RESULT_FILE")" >> $GITHUB_OUTPUT
-          echo "findings_count=0" >> $GITHUB_OUTPUT
-          echo "skipped=true" >> $GITHUB_OUTPUT
+          write_skipped_outputs
         else
-          echo "verdict=$(jq -r '.verdict' "$RESULT_FILE")" >> $GITHUB_OUTPUT
-          echo "summary=$(jq -r '.summary' "$RESULT_FILE" | head -c 1000)" >> $GITHUB_OUTPUT
+          VERDICT=$(jq -r '.verdict // empty' "$RESULT_FILE")
+          if [ -z "$VERDICT" ]; then
+            echo "::error::Review JSON is missing the verdict field."
+            cat "$RESULT_FILE"
+            exit 1
+          fi
+          echo "verdict=$VERDICT" >> $GITHUB_OUTPUT
+          {
+            echo "summary<<OPEN_REVIEW_EOF"
+            jq -r '(.summary // "")[:1000]' "$RESULT_FILE"
+            echo "OPEN_REVIEW_EOF"
+          } >> $GITHUB_OUTPUT
           echo "findings_count=$(jq '.findings | length' "$RESULT_FILE")" >> $GITHUB_OUTPUT
           echo "skipped=false" >> $GITHUB_OUTPUT
         fi
@@ -215,6 +238,18 @@ runs:
         PR_NUMBER: ${{ github.event.pull_request.number }}
         REPO: ${{ github.repository }}
         RESULT_FILE: ${{ steps.review.outputs.result_file }}
+        INPUT_TIMEZONE: ${{ inputs.timezone }}
+        INPUT_MUST_FIX: ${{ inputs.must_fix }}
+        INPUT_SHOULD_FIX: ${{ inputs.should_fix }}
+        INPUT_SUGGESTIONS: ${{ inputs.suggestions }}
+        INPUT_QUESTIONS: ${{ inputs.questions }}
+        INPUT_COLLAPSE_MUST_FIX: ${{ inputs.collapse_must_fix }}
+        INPUT_COLLAPSE_SHOULD_FIX: ${{ inputs.collapse_should_fix }}
+        INPUT_COLLAPSE_SUGGESTIONS: ${{ inputs.collapse_suggestions }}
+        INPUT_COLLAPSE_QUESTIONS: ${{ inputs.collapse_questions }}
+        INPUT_LABEL_APPROVE: ${{ inputs.label_approve }}
+        INPUT_LABEL_CHANGES_NEEDED: ${{ inputs.label_changes_needed }}
+        INPUT_LABEL_HOLD: ${{ inputs.label_hold }}
       run: |
         cd ${{ github.action_path }}
         node format-and-post.js
