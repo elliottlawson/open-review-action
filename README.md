@@ -88,8 +88,8 @@ jobs:
 
 The action runs an agent loop instead of a fixed CLI pipeline:
 
-1. Installs the [opencode](https://opencode.ai) agent CLI and the `review` / `review-output-json` agent skills (from [elliottlawson/open-review](https://github.com/elliottlawson/open-review)) into the checked-out repository.
-2. Runs `opencode run` with the `review-output-json` skill against `git diff origin/<base>...HEAD`. The agent reviews the diff in six passes — mission, architecture, implementation, craft, security, performance — reading your repo's own `REVIEW.md`, `AGENTS.md`, and docs to judge "correct" against your project's actual standards.
+1. Installs the [opencode](https://opencode.ai) agent CLI and the `review` / `review-as-json` agent skills (from [elliottlawson/open-review](https://github.com/elliottlawson/open-review), pinned to a release tag) into the checked-out repository.
+2. Runs `opencode run` with the `review-as-json` skill against `git diff origin/<base>...HEAD`. The agent reviews the diff in six passes — mission, architecture, implementation, craft, security, performance — reading your repo's own `REVIEW.md`, `AGENTS.md`, and docs to judge "correct" against your project's actual standards.
 3. Emits the verdict and findings as structured JSON, which the action renders into the PR comment.
 
 There is no config file. Review behavior comes from the skills plus your repo's documentation; comment presentation comes from the action inputs above.

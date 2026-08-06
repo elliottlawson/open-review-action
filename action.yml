@@ -113,11 +113,11 @@ runs:
     - name: Install Review Skills
       shell: bash
       run: |
-        # Ref-pinned until the skills land on the repo's default branch.
-        # Once merged, drop the "#$SKILLS_REF" suffix.
+        # Pinned to an open-review release tag. Bump deliberately per release —
+        # this controls which version of the review skills CI runs.
         SKILLS_REPO="elliottlawson/open-review"
-        SKILLS_REF="feat/composable-review-skills"
-        npx -y skills add "${SKILLS_REPO}#${SKILLS_REF}" --skill review --skill review-output-json -y
+        SKILLS_REF="v0.2.0"
+        npx -y skills add "${SKILLS_REPO}#${SKILLS_REF}" --skill review --skill review-as-json -y
 
     - name: Run Review
       id: review
@@ -181,11 +181,11 @@ runs:
         fi
 
         # Build the review instruction
-        INSTRUCTION="Use the review-output-json skill to review a code change in this repository.
+        INSTRUCTION="Use the review-as-json skill to review a code change in this repository.
 
         The change to review is the diff produced by: git diff origin/$BASE_REF...HEAD
 
-        Run that command to see the diff, then follow the review-output-json skill exactly. Your final message must contain only the JSON object the skill specifies - no preamble, no commentary, no markdown fences."
+        Run that command to see the diff, then follow the review-as-json skill exactly. Your final message must contain only the JSON object the skill specifies - no preamble, no commentary, no markdown fences."
 
         if [ -n "$INPUT_PROMPT" ]; then
           INSTRUCTION="$INSTRUCTION
