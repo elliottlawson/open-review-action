@@ -12,14 +12,60 @@ function extractVersion(body) {
   return versionMatch ? parseInt(versionMatch[1], 10) : 0;
 }
 
+/**
+ * Overlay action presentation inputs onto the review result.
+ *
+ * The old CLI merged these into the JSON output itself; the opencode engine
+ * only emits review content, so the action injects them here before
+ * formatting. Defaults match the old CLI's config schema so the rendered
+ * comment is unchanged: sections enabled with collapse=auto, verdict labels
+ * LGTM / Changes Needed / Hold, timezone America/New_York.
+ */
+function applyPresentationInputs(result) {
+  const env = process.env;
+
+  const sectionKeys = ['must_fix', 'should_fix', 'suggestions', 'questions'];
+  result.sections = result.sections || {};
+  for (const key of sectionKeys) {
+    const suffix = key.toUpperCase();
+    const enabledInput = env[`INPUT_${suffix}`];
+    const collapseInput = env[`INPUT_COLLAPSE_${suffix}`];
+    const existing = result.sections[key] || {};
+    // Precedence: action input > engine value > old CLI default.
+    result.sections[key] = {
+      enabled: enabledInput ? enabledInput === 'true' : (existing.enabled !== undefined ? existing.enabled : true),
+      collapse: collapseInput || existing.collapse || 'auto',
+    };
+  }
+
+  const verdictDefaults = {
+    approve: 'LGTM',
+    changes_needed: 'Changes Needed',
+    hold: 'Hold',
+  };
+  result.verdicts = result.verdicts || {};
+  for (const [key, fallback] of Object.entries(verdictDefaults)) {
+    const labelInput = env[`INPUT_LABEL_${key.toUpperCase()}`];
+    result.verdicts[key] = {
+      label: labelInput || result.verdicts[key]?.label || fallback,
+    };
+  }
+
+  result.timezone = env.INPUT_TIMEZONE || result.timezone || 'America/New_York';
+
+  return result;
+}
+
 
 async function main() {
   const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
   const [owner, repo] = process.env.REPO.split('/');
   const prNumber = parseInt(process.env.PR_NUMBER, 10);
 
-  // Read the ReviewResult from core CLI
-  const result = JSON.parse(fs.readFileSync(process.env.RESULT_FILE, 'utf8'));
+  // Read the review result produced by the engine
+  const result = applyPresentationInputs(
+    JSON.parse(fs.readFileSync(process.env.RESULT_FILE, 'utf8'))
+  );
 
   // Handle skipped reviews — don't post a comment
   if (result.skipped) {

@@ -36,10 +36,10 @@ jobs:
 
 | Input | Required | Description |
 |-------|----------|-------------|
-| `provider` | No | LLM provider: `anthropic`, `openai`, or `openrouter`. Can also be set in `.open-review/config.yml`. |
-| `model` | No | Model name (e.g., `claude-sonnet-4-20250514`, `gpt-4o`). Can also be set in `.open-review/config.yml`. |
-| `api_key` | No | API key for the provider. Can also use `OPEN_REVIEW_API_KEY` secret or `.open-review/config.yml`. |
-| `config_path` | No | Path to `.open-review/config.yml` (optional, defaults to repo root) |
+| `provider` | No | LLM provider: `anthropic`, `openai`, or `openrouter` (default: `openrouter`). |
+| `model` | No | Model ID from the provider's catalog (default: `moonshotai/kimi-k2.6`). Combined as `provider/model` for the engine — see `opencode models` for valid IDs. |
+| `api_key` | No | API key for the provider (usually the `OPEN_REVIEW_API_KEY` secret). Mapped to the provider's env var (`OPENROUTER_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`). |
+| `config_path` | No | **Deprecated, ignored.** The opencode engine does not read `.open-review/config.yml`. |
 | `prompt` | No | Ephemeral focus for this review only |
 | `verbose` | No | Show review progress in logs (default: `false`) |
 
@@ -47,7 +47,7 @@ jobs:
 
 | Input | Required | Description |
 |-------|----------|-------------|
-| `timezone` | No | IANA timezone for timestamps. Falls back to `.open-review/config.yml` or harness default. |
+| `timezone` | No | IANA timezone for timestamps (default: `America/New_York`). |
 
 ### Section Visibility
 
@@ -84,50 +84,15 @@ jobs:
 | `findings_count` | Number of issues found |
 | `skipped` | Whether the review was skipped (`true` or `false`) |
 
-## Configuration File
+## How It Works
 
-The underlying `open-review` CLI automatically reads `.open-review/config.yml` from your repository. Action inputs are passed to the CLI as flags and take precedence over config file values.
+The action runs an agent loop instead of a fixed CLI pipeline:
 
-**Precedence:** Action inputs (CLI flags) > `.open-review/config.yml` config > defaults
+1. Installs the [opencode](https://opencode.ai) agent CLI and the `review` / `review-as-json` agent skills (from [elliottlawson/open-review](https://github.com/elliottlawson/open-review), pinned to a release tag) into the checked-out repository.
+2. Runs `opencode run` with the `review-as-json` skill against `git diff origin/<base>...HEAD`. The agent reviews the diff in six passes — mission, architecture, implementation, craft, security, performance — reading your repo's own `REVIEW.md`, `AGENTS.md`, and docs to judge "correct" against your project's actual standards.
+3. Emits the verdict and findings as structured JSON, which the action renders into the PR comment.
 
-```yaml
-version: "1.0"
-
-llm:
-  provider: anthropic
-  model: claude-sonnet-4-20250514
-  api_key: "${OPEN_REVIEW_API_KEY}"
-
-review:
-  methodology: default
-  presets: auto
-  conventions: auto
-
-output:
-  timezone: America/New_York
-  sections:
-    must_fix:
-      enabled: true
-      collapse: auto
-    should_fix:
-      enabled: true
-      collapse: auto
-    suggestions:
-      enabled: true
-      collapse: always
-    questions:
-      enabled: true
-      collapse: auto
-  verdicts:
-    approve:
-      label: "SHIP IT"
-    changes_needed:
-      label: "BLOCKED"
-    hold:
-      label: "DISCUSS"
-```
-
-Methodology and presets are built into the harness. You can customize them locally by running `npx open-review publish` or `npx open-review preset apply <name>`.
+There is no config file. Review behavior comes from the skills plus your repo's documentation; comment presentation comes from the action inputs above.
 
 ## Examples
 
