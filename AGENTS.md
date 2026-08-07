@@ -27,7 +27,10 @@ There is no CLI and no config file. Per run, the action:
    tag or branch (the skills CLI cannot resolve raw shas).
 2. Runs `opencode run --auto` (with `OPENCODE_CONFIG_CONTENT={"permission":{"edit":"deny"}}`)
    instructing the agent to use the `review-as-json` skill on
-   `git diff origin/<base>...HEAD`.
+   `git diff origin/<base>...HEAD`. Retries up to 3 attempts when a run yields
+   no usable JSON (the provider occasionally returns an empty completion, and
+   opencode exits 0 with no output); opencode's stderr is replayed to the log
+   per attempt, and retries run with `--print-logs`.
 3. Extracts the JSON (`extract-json.js`), posts/updates the comment
    (`format-and-post.js`).
 
