@@ -10,7 +10,7 @@ inputs:
     required: false
     default: ""
   model:
-    description: "Model to use (e.g., moonshotai/kimi-k2.6, claude-sonnet-4-20250514). Default: moonshotai/kimi-k2.6"
+    description: "Model to use (e.g., deepseek/deepseek-v4-flash-0731, claude-sonnet-4-20250514). Default: deepseek/deepseek-v4-flash-0731"
     required: false
     default: ""
   api_key:
@@ -147,7 +147,7 @@ runs:
 
         # Resolve provider/model (defaults match the review-ci-setup skill)
         PROVIDER="${INPUT_PROVIDER:-openrouter}"
-        MODEL="${INPUT_MODEL:-moonshotai/kimi-k2.6}"
+        MODEL="${INPUT_MODEL:-deepseek/deepseek-v4-flash-0731}"
 
         # Map the API key onto the provider's env var for opencode
         if [ -n "$INPUT_API_KEY" ]; then

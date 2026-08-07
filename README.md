@@ -37,7 +37,7 @@ jobs:
 | Input | Required | Description |
 |-------|----------|-------------|
 | `provider` | No | LLM provider: `anthropic`, `openai`, or `openrouter` (default: `openrouter`). |
-| `model` | No | Model ID from the provider's catalog (default: `moonshotai/kimi-k2.6`). Combined as `provider/model` for the engine — see `opencode models` for valid IDs. |
+| `model` | No | Model ID from the provider's catalog (default: `deepseek/deepseek-v4-flash-0731`). Combined as `provider/model` for the engine — see `opencode models` for valid IDs. |
 | `api_key` | No | API key for the provider (usually the `OPEN_REVIEW_API_KEY` secret). Mapped to the provider's env var (`OPENROUTER_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`). |
 | `config_path` | No | **Deprecated, ignored.** The opencode engine does not read `.open-review/config.yml`. |
 | `prompt` | No | Ephemeral focus for this review only |
