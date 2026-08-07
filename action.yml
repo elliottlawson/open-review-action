@@ -77,6 +77,10 @@ inputs:
     description: "Show review progress in logs"
     required: false
     default: "false"
+  skills_ref:
+    description: "Git ref of elliottlawson/open-review to install the review skills from (tag or branch - the skills CLI cannot resolve raw shas)"
+    required: false
+    default: "v0.2.0"
 
 outputs:
   verdict:
@@ -112,11 +116,13 @@ runs:
 
     - name: Install Review Skills
       shell: bash
+      env:
+        SKILLS_REF: ${{ inputs.skills_ref }}
       run: |
-        # Pinned to an open-review release tag. Bump deliberately per release —
-        # this controls which version of the review skills CI runs.
+        # Pinned to an open-review release tag by default (skills_ref input).
+        # Bump the default deliberately per release — this controls which
+        # version of the review skills CI runs.
         SKILLS_REPO="elliottlawson/open-review"
-        SKILLS_REF="v0.2.0"
         npx -y skills add "${SKILLS_REPO}#${SKILLS_REF}" --skill review --skill review-as-json -y
 
     - name: Run Review

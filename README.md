@@ -43,6 +43,12 @@ jobs:
 | `prompt` | No | Ephemeral focus for this review only |
 | `verbose` | No | Show review progress in logs (default: `false`) |
 
+### Skills Version
+
+| Input | Required | Description |
+|-------|----------|-------------|
+| `skills_ref` | No | Git ref of [elliottlawson/open-review](https://github.com/elliottlawson/open-review) to install the review skills from: tag or branch (default: `v0.2.0`). The skills CLI cannot resolve raw commit shas. |
+
 ### Output Options
 
 | Input | Required | Description |
