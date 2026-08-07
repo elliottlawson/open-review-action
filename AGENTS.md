@@ -20,9 +20,11 @@ This project is a **GitHub Action** that posts AI-generated code reviews as comm
 There is no CLI and no config file. Per run, the action:
 
 1. Installs `opencode-ai` globally and the `review` + `review-as-json` skills via
-   `npx skills add elliottlawson/open-review#<tag>` — **pinned to an open-review
-   release tag** (`SKILLS_REF` in `action.yml`). Bump the pin deliberately per
-   release; it controls which version of the review methodology CI runs.
+   `npx skills add elliottlawson/open-review#<ref>` — **pinned to an open-review
+   release tag by default** (the `skills_ref` input in `action.yml`, default
+   `v0.2.0`). Bump the default deliberately per release; it controls which
+   version of the review methodology CI runs. Callers may override with any
+   tag or branch (the skills CLI cannot resolve raw shas).
 2. Runs `opencode run --auto` (with `OPENCODE_CONFIG_CONTENT={"permission":{"edit":"deny"}}`)
    instructing the agent to use the `review-as-json` skill on
    `git diff origin/<base>...HEAD`.
