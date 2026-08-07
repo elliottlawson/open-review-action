@@ -200,15 +200,47 @@ runs:
 
         # Run the review. --auto approves any permission prompts so CI never hangs;
         # OPENCODE_CONFIG_CONTENT denies file edits (review is read-only).
+        # The provider occasionally returns an empty completion: opencode then
+        # exits 0 with no output, so retry instead of failing the run. opencode's
+        # stderr (progress, any provider error) is captured and replayed per
+        # attempt so a silent failure still leaves evidence in the log.
         RAW_FILE=$(mktemp)
-        opencode run --auto $VERBOSE_FLAG --model "$PROVIDER/$MODEL" "$INSTRUCTION" > "$RAW_FILE"
+        ERR_FILE=$(mktemp)
+        MAX_ATTEMPTS=3
+        REVIEW_OK=false
 
-        # Strip any markdown fences / commentary and validate the JSON
-        if ! node "${{ github.action_path }}/extract-json.js" "$RAW_FILE" > "$RESULT_FILE"; then
-          echo "::error::Review did not produce valid JSON. See raw output above."
+        for ((attempt=1; attempt<=MAX_ATTEMPTS; attempt++)); do
+          if [ "$attempt" -gt 1 ]; then
+            echo "::warning::Review attempt $((attempt-1)) produced no usable JSON; retrying (attempt $attempt of $MAX_ATTEMPTS)."
+            # Retries carry opencode's internal logs so an empty run is diagnosable.
+            if [ -z "$VERBOSE_FLAG" ]; then
+              VERBOSE_FLAG="--print-logs"
+            fi
+          fi
+
+          OPENCODE_EXIT=0
+          opencode run --auto $VERBOSE_FLAG --model "$PROVIDER/$MODEL" "$INSTRUCTION" > "$RAW_FILE" 2> "$ERR_FILE" || OPENCODE_EXIT=$?
+          cat "$ERR_FILE" >&2
+
+          if [ "$OPENCODE_EXIT" -ne 0 ]; then
+            echo "::warning::opencode exited with code $OPENCODE_EXIT (attempt $attempt of $MAX_ATTEMPTS)."
+          fi
+
+          # Strip any markdown fences / commentary and validate the JSON
+          if node "${{ github.action_path }}/extract-json.js" "$RAW_FILE" > "$RESULT_FILE" 2> /dev/null; then
+            REVIEW_OK=true
+            break
+          fi
+        done
+
+        if [ "$REVIEW_OK" != "true" ]; then
+          echo "::error::Review did not produce valid JSON after $MAX_ATTEMPTS attempts. See opencode output above."
+          echo "--- Raw output (final attempt) ---"
+          cat "$RAW_FILE"
+          echo "--- End raw output ---"
           exit 1
         fi
-        rm -f "$RAW_FILE"
+        rm -f "$RAW_FILE" "$ERR_FILE"
 
         # Parse outputs (handle skipped reviews)
         SKIPPED=$(jq -r '.skipped // false' "$RESULT_FILE")
