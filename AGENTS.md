@@ -153,3 +153,14 @@ When changing action behavior:
 5. Run `node --check` to verify syntax
 6. If the JSON contract changes, the `review-as-json` skill in open-review changed
    — update this doc, and check elliottlawson/open-review-lab for the tracking issue
+
+## Releases
+
+Releases are semver. Tag `v2.x.y` immutably, then float `v2` to it — workflow
+files reference `elliottlawson/open-review-action@v2`, so the floating tag is
+what callers get.
+
+- **Minor or patch** for compatible changes: new optional inputs, fixes, default
+  tweaks.
+- **`v3` only on contract breaks**: an input removed or renamed, the skills JSON
+  contract changing, or permission changes.
